@@ -15,6 +15,7 @@
 #include "sdl.h"
 #include "sdl.h"
 
+
 class Controller {
     Sdl *sdl;
     uint8_t control = 0;
@@ -66,7 +67,7 @@ public:
 
 class Nes {
     static const uint32_t cpuMemorySize = 1 << 16;
-    static const uint32_t videoMemorySize = 1 << 11 + 1 << 13;
+    static const uint32_t videoMemorySize = (1 << 11) + (1 << 13);
     
     static const uint16_t cartridgeRomBase = 0x8000;
     static const uint16_t cartridgeRomSize = 0x4000;
@@ -98,8 +99,8 @@ class Nes {
     
     Cpu cpu;
     Ppu ppu;
-    Sdl sdl;
     Apu apu;
+    Sdl sdl;
     Controller pad;
     
     uint16_t translateCpuWindows(uint16_t addr)
