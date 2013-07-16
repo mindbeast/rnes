@@ -3,7 +3,7 @@ CPP      = g++
 LD       = g++
 
 ifdef RELEASE 
-CPPFLAGS   = -O3 
+CPPFLAGS   = -O3 -fno-omit-frame-pointer -ggdb
 endif
 CPPFLAGS  += -std=c++11 -Wall
 

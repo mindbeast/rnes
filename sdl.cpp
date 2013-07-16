@@ -68,6 +68,7 @@ void Sdl::parseInput()
                 else {
                     buttonState[button] = false;
                 }
+                break;
             case SDL_QUIT:
                 exit(1);
                 break;
