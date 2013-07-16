@@ -62,7 +62,7 @@ $(BINDIR)/%.o : %.cpp
 	$(CPP) $(CPPFLAGS) -c $< -o $@
 
 $(BINDIR)/%.d : %.cpp
-	$(CPP) -MM $(CPPFLAGS) $< > $@
+	$(CPP) -MM $(CPPFLAGS)  -MT $(BINDIR)/$*.o $< > $@
 
 $(BINDIR)/%.s : %.cpp
 	$(CPP) $(CPPFLAGS) $< -S -fverbose-asm -o $@
