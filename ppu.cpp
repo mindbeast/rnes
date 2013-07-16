@@ -9,6 +9,21 @@
 #include "ppu.h"
 #include "nes.h"
 
+static uint32_t timerGetMs()
+{
+    return SDL_GetTicks();
+}
+
+static void sleepMs(uint32_t ms)
+{
+    SDL_Delay(ms);
+}
+
+Ppu::Ppu(Nes *parent, Sdl *disp) : nes{parent}, sdl{disp}
+{
+    lastFrameTimeMs = timerGetMs();
+}
+
 uint8_t Ppu::load(uint16_t addr)
 {
     return nes->vidMemRead(addr);
@@ -97,7 +112,7 @@ uint32_t Ppu::getNameTableYOffset()
     return ((regs[CONTROL1_REG] & 0x2) >> 1) * 256;
 }
 
-uint8_t Ppu::getColorFromPatternTable(uint16_t patternTable, bool is8x8, int offset, int x, int y)
+uint8_t Ppu::getColorFromPatternTable(uint16_t patternTable, bool is8x8, int offset, uint32_t x, uint32_t y)
 {
     assert(x < 8);
     uint32_t entrySize = is8x8 ? 16 : 32;
@@ -120,7 +135,7 @@ uint8_t Ppu::getColorFromPatternTable(uint16_t patternTable, bool is8x8, int off
     return color;
 }
 
-uint8_t Ppu::getNameTableColor(uint16_t nameTableAddr, uint16_t patternTableAddr, bool is8x8, int x, int y)
+uint8_t Ppu::getNameTableColor(uint16_t nameTableAddr, uint16_t patternTableAddr, bool is8x8, uint32_t x, uint32_t y)
 {
     assert(x < renderWidth);
     assert(y < renderHeight);
@@ -133,7 +148,7 @@ uint8_t Ppu::getNameTableColor(uint16_t nameTableAddr, uint16_t patternTableAddr
     return color;
 }
 
-uint8_t Ppu::getAttributeTablePalette(uint16_t nameTableAddr, int x, int y)
+uint8_t Ppu::getAttributeTablePalette(uint16_t nameTableAddr, uint32_t x, uint32_t y)
 {
     assert(x < renderWidth);
     assert(y < renderHeight);
@@ -170,7 +185,7 @@ uint32_t Ppu::renderBackgroundPixel(int x, int y, bool& transparent)
     return getColor(palette, color, false);
 }
 
-void Ppu::render(int scanline)
+void Ppu::render(uint32_t scanline)
 {
     bool spriteSize8x8 = isSpriteSize8x8();
     uint32_t spriteSize = spriteSize8x8 ? 8 : 16;
@@ -185,12 +200,12 @@ void Ppu::render(int scanline)
         // Render up to 8 colliding sprites
         uint32_t patternTableAddr = getSpritePatternTableAddr();
         uint32_t renderedSprites = 0;
-        for (int i = 0; i < maxSpriteCount; i++) {
+        for (uint32_t i = 0; i < maxSpriteCount; i++) {
             
             // Determine if the provide collides with the scanline
             uint32_t sprite = maxSpriteCount - 1 - i;
-            if ((scanline >= (spriteRam[sprite].yCoordMinus1 + 1)) and
-                (scanline <= (spriteRam[sprite].yCoordMinus1 + 1 + spriteSize - 1))) {
+            if ((scanline >= (spriteRam[sprite].yCoordMinus1 + 1u)) and
+                (scanline <= (spriteRam[sprite].yCoordMinus1 + 1u + spriteSize - 1u))) {
             }
             else {
                 continue;
@@ -239,7 +254,7 @@ void Ppu::render(int scanline)
     if (renderBackgroundEnabled()) {
         
         // render background
-        for (int i = 0; i < renderWidth; i++) {
+        for (uint32_t i = 0; i < renderWidth; i++) {
             bool transparent = false;
             uint32_t pixel = renderBackgroundPixel(i, scanline, transparent);
             
@@ -254,7 +269,7 @@ void Ppu::render(int scanline)
     
     // dump pixels to display
     preRender();
-    for (int i = 0; i < renderWidth; i++) {
+    for (uint32_t i = 0; i < renderWidth; i++) {
         setPixel(i, scanline, scanlineBuffer[i]);
     }
     postRender();

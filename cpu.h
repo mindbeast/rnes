@@ -1051,13 +1051,13 @@ public:
     }
     inline void instTrace(const std::string& str, int bytes)
     {
-        int instPadding = 32;
+        uint32_t instPadding = 32;
         if (debug) {
             dumpPc();
             dumpInstructionBytes(bytes);
             std::cerr << str;
             if (str.size() < instPadding) {
-                for (int i = 0; i < instPadding - str.size(); i++) {
+                for (uint32_t i = 0; i < instPadding - str.size(); i++) {
                     std::cerr << " ";
                 }
             }

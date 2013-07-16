@@ -18,14 +18,6 @@
 #include <cassert>
 #include <SDL/SDL.h>
 
-static uint32_t timerGetMs() {
-    return SDL_GetTicks();
-}
-
-static void sleepMs(uint32_t ms) {
-    SDL_Delay(ms);
-}
-
 class Nes;
 class Sdl;
 
@@ -216,16 +208,16 @@ public:
     }
     uint32_t getNameTableXOffset();
     uint32_t getNameTableYOffset();
-    uint8_t getColorFromPatternTable(uint16_t patternTable, bool is8x8, int offset, int x, int y);
-    uint8_t getNameTableColor(uint16_t nameTableAddr, uint16_t patternTableAddr, bool is8x8, int x, int y);
-    uint8_t getAttributeTablePalette(uint16_t nameTableAddr, int x, int y);
+    uint8_t getColorFromPatternTable(uint16_t patternTable, bool is8x8, int offset, uint32_t x, uint32_t y);
+    uint8_t getNameTableColor(uint16_t nameTableAddr, uint16_t patternTableAddr, bool is8x8, uint32_t x, uint32_t y);
+    uint8_t getAttributeTablePalette(uint16_t nameTableAddr, uint32_t x, uint32_t y);
     uint32_t renderBackgroundPixel(int x, int y, bool& transparent);
-    void render(int scanline);
+    void render(uint32_t scanline);
     void tick();
     
     void run(uint32_t cpuCycle)
     {
-        for (int i = 0; i < cpuCycle * 3; i++) {
+        for (uint32_t i = 0; i < cpuCycle * 3; i++) {
             tick();
         }
     }
@@ -250,9 +242,7 @@ public:
 
 public:
     
-    Ppu(Nes *parent, Sdl *disp) : nes{parent}, sdl{disp} {
-        lastFrameTimeMs = timerGetMs();
-    }
+    Ppu(Nes *parent, Sdl *disp);
     Ppu() = delete;
     Ppu(const Ppu&) = delete;
     ~Ppu() {}
