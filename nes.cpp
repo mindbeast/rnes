@@ -98,3 +98,4 @@ Nes::~Nes()
         munmap(rom, romSize);
     }
 }
+
