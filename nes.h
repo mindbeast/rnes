@@ -27,14 +27,14 @@ public:
     void setShiftReg() {
         sdl->parseInput();
         shiftReg = 0;
-        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_A) ? 0u : 1u)      << 0;
-        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_B) ? 0u : 1u)      << 1;
-        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_SELECT) ? 0u : 1u) << 2;
-        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_START) ? 0u : 1u)  << 3;
-        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_UP) ? 0u : 1u)     << 4;
-        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_DOWN) ? 0u : 1u)   << 5;
-        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_LEFT) ? 0u : 1u)   << 6;
-        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_RIGHT) ? 0u : 1u)  << 7;
+        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_A) ? 1u : 0u)      << 0;
+        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_B) ? 1u : 0u)      << 1;
+        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_SELECT) ? 1u : 0u) << 2;
+        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_START) ? 1u : 0u)  << 3;
+        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_UP) ? 1u : 0u)     << 4;
+        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_DOWN) ? 1u : 0u)   << 5;
+        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_LEFT) ? 1u : 0u)   << 6;
+        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_RIGHT) ? 1u : 0u)  << 7;
         
         if (debug) {
             std::cerr << "shiftReg: " << std::hex << (int)shiftReg << "\n";

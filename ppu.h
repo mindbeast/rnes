@@ -114,7 +114,8 @@ public:
         VRAM_DATA_REG           = 7,
         REG_COUNT               = 8,
     };
-    
+
+public:   
     uint32_t getBgColor() {
         uint8_t memColor = load(backColorAddr);
         assert(memColor < sizeof(nesPaletteLut)/sizeof(nesPaletteLut[0]));
@@ -240,12 +241,14 @@ public:
     uint8_t load(uint16_t addr);
     void store(uint16_t addr, uint8_t val);
     
-    void writeReg(uint32_t reg, uint8_t val);
-    uint8_t readReg(uint32_t reg);
-    
     void preRender();
     void postRender();
     void setPixel(int x, int y, uint32_t color);
+    
+    void writeReg(uint32_t reg, uint8_t val);
+    uint8_t readReg(uint32_t reg);
+
+public:
     
     Ppu(Nes *parent, Sdl *disp) : nes{parent}, sdl{disp} {
         lastFrameTimeMs = timerGetMs();
