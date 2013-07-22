@@ -46,6 +46,7 @@ void Ppu::writeReg(uint32_t reg, uint8_t val)
     // VRAM_DATA_REG           = 7,
     switch (reg) {
         case CONTROL1_REG:
+            vramTempAddr = (vramTempAddr & 0xf3ff) | ((uint16_t)val & 0x3) << 10;
         case CONTROL2_REG:
             // Write only registers.
             regs[reg] = val;
@@ -61,28 +62,25 @@ void Ppu::writeReg(uint32_t reg, uint8_t val)
             regs[SPR_ADDR_REG]++;
             break;
         case VRAM_ADDR_REG1:
-            if (vramMachineState == 0) {
-                xScrollOrigin = val;
-                vramMachineState = 1;
+            if (vramToggle == 0) {
+                vramTempAddr = (0xffe0 & vramTempAddr) | (val >> 3) ;
+		vramFineXScroll = val & 0x7;
             }
             else {
-                yScrollOrigin = val;
-                vramMachineState = 0;
+                vramTempAddr = (0xc1f & vramTempAddr) | (((uint16_t)val & 0x7) << 12) | (((uint16_t)val & 0xf8) << 2);
             }
+            vramToggle = !vramToggle;
             break;
         case VRAM_ADDR_REG2:
             regs[CONTROL1_REG] &= ~0x3;
-            xScrollOrigin = 0;
-            yScrollOrigin = 0;
-            if (vramMachineState == 0) {
-                vramMachineAddr = 0;
-                vramMachineAddr = ((uint16_t)val << 8);
-                vramMachineState = 1;
+            if (vramToggle == 0) {
+		vramTempAddr = (((uint16_t)val & 0x3f) << 8) | (vramTempAddr & 0xff);
             }
             else {
-                vramMachineAddr = val | vramMachineAddr;
-                vramMachineState = 0;
+                vramTempAddr = (uint16_t)val | (vramTempAddr & 0xff00);
+                vramCurrentAddr = vramTempAddr;
             }
+            vramToggle = !vramToggle;
             break;
         case VRAM_DATA_REG:
             nes->vidMemWrite(vramMachineAddr, val);
@@ -106,8 +104,7 @@ uint8_t Ppu::readReg(uint32_t reg)
             // vblank status bit is clear on read
             regs[STATUS_REG] |= regs[STATUS_REG] & ~STATUS_VBLANK_HIT;
             // reset the scroll/vram machine flip flops
-            scrollingMachineState = 0;
-            vramMachineState = 0;
+            vramToggle = 0;
             // and return the reg value 
             return regs[reg]; 
             break;
