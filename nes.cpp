@@ -12,6 +12,150 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+uint16_t Nes::translateCpuWindows(uint16_t addr)
+{
+    if (addr >= 0x800 && addr < 0x2000) {
+        addr = (addr & (0x800 - 1)) + 0x800;
+    }
+    if (addr >= 0x2000 && addr < 0x4000) {
+        addr = (addr & (0x8 - 1)) + 0x2000;
+    }
+    return addr;
+}
+
+uint16_t Nes::translatePpuWindows(uint16_t addr)
+{
+    if (addr >= 0x3000 && addr < 0x3f00) {
+        addr = (addr & (0xf00 - 1)) + 0x2000;
+    }
+    if (addr >= 0x4000 && addr < (0x4000 + 0xc000)) {
+        addr = addr - 0x4000;
+    }
+    
+    // palette mirroring
+    if (addr == 0x3f10) {
+        addr = 0x3f00;
+    }
+    else if (addr == 0x3f14) {
+        addr = 0x3f04;
+    }
+    else if (addr == 0x3f18) {
+        addr = 0x3f08;
+    }
+    else if (addr == 0x3f1c) {
+        addr = 0x3f0c;
+    }
+    
+    // Nametable mappings are rom dependent
+    if (!verticalMirroring) {
+        if (addr >= nameTable1 && addr < nameTable2) {
+            addr = (addr & (nameTableSize - 1)) + nameTable0;
+        }
+        else if (addr >= nameTable3 && addr < (nameTable3 + nameTableSize)) {
+            addr = (addr & (nameTableSize - 1)) + nameTable2;
+        }
+    }
+    else {
+        if (addr >= nameTable3 && addr < (nameTable3 + nameTableSize)) {
+            addr = (addr & (nameTableSize - 1)) + nameTable1;
+        }
+        else if (addr >= nameTable2 && addr < nameTable3) {
+            addr = (addr & (nameTableSize - 1)) + nameTable0;
+        }
+    }
+    return addr;
+}
+
+uint32_t Nes::spriteDmaExecute()
+{
+    const uint32_t cyclesPerItr = 2;
+    assert(spriteDmaMode);
+    cpuMemWrite(ppuRegBase + Ppu::SPR_DATA_REG, cpuMemRead(spriteDmaSourceAddr));
+    spriteDmaSourceAddr++;
+    spriteDmaCycle += cyclesPerItr;
+    if (spriteDmaCycleEnd == spriteDmaCycle) {
+        spriteDmaMode = false;
+    }
+    return cyclesPerItr;
+}
+
+void Nes::spriteDmaSetup(uint8_t val)
+{
+    spriteDmaMode = true;
+    spriteDmaCycle = 0;
+    spriteDmaSourceAddr = (uint16_t)val * 0x100;
+}
+
+void Nes::cpuMemWrite(uint16_t addr, uint8_t val)
+{
+    addr = translateCpuWindows(addr);
+    if (addr >= ppuRegBase && addr <= ppuRegEnd) {
+        ppu.writeReg(addr - ppuRegBase, val);
+    }
+    else if (addr == spriteDmaAddr) {
+        spriteDmaSetup(val);
+    }
+    else if (addr == joypadAddr) {
+        pad.write(val);
+    }
+    else if (addr >= apuRegBase && addr <= apuRegEnd) {
+        apu.writeReg(addr - apuRegBase, val);
+    }
+    else {
+        cpuMemory[addr] = val;
+    }
+}
+
+uint8_t Nes::cpuMemRead(uint16_t addr)
+{
+    addr = translateCpuWindows(addr);
+    if (addr >= ppuRegBase && addr <= ppuRegEnd) {
+        return ppu.readReg(addr - ppuRegBase);
+    }
+    else if (addr == joypadAddr) {
+        return pad.read();
+    }
+    else if (addr >= apuRegBase && addr <= apuRegEnd) {
+        return apu.readReg(addr - apuRegBase);
+    }
+    else {
+        return cpuMemory[addr];
+    }
+}
+
+void Nes::vidMemWrite(uint16_t addr, uint8_t val)
+{
+    vidMemory[translatePpuWindows(addr)] = val;
+}
+
+uint8_t Nes::vidMemRead(uint16_t addr)
+{
+    return vidMemory[translatePpuWindows(addr)];
+}
+
+void Nes::run()
+{
+    uint32_t inputCycles = 1 << 20;
+    sdl.init();
+    cpu.reset();
+    while (1) {
+        uint32_t cpuCycles;
+        if (!spriteDmaMode) {
+            cpuCycles = cpu.runInst();
+        }
+        else {
+            cpuCycles = spriteDmaExecute();
+        }
+        ppu.run(cpuCycles);
+        apu.run(cpuCycles);
+
+        cycles += cpuCycles;
+        if ((cycles % inputCycles) == 0) {
+            sdl.parseInput();
+        }
+    }
+}
+
 struct NesHeader {
     char str[4]; // ? "NES^Z"
     uint8_t numRomBanks;   // number of 16kb ROM banks
