@@ -41,13 +41,18 @@ void Ppu::writeReg(uint32_t reg, uint8_t val)
     // STATUS_REG              = 2,
     // SPR_ADDR_REG            = 3,
     // SPR_DATA_REG            = 4,
-    // BG_SCROLLING_OFFSET_REG = 5,
-    // VRAM_ADDR_REG           = 6,
+    // VRAM_ADDR_REG1          = 5,
+    // VRAM_ADDR_REG2          = 6,
     // VRAM_DATA_REG           = 7,
     switch (reg) {
         case CONTROL1_REG:
         case CONTROL2_REG:
+            // Write only registers.
+            regs[reg] = val;
+            break;
         case STATUS_REG:
+            // Read only register.
+            break;
         case SPR_ADDR_REG:
             regs[reg] = val;
             break;
@@ -55,7 +60,7 @@ void Ppu::writeReg(uint32_t reg, uint8_t val)
             memcpy(regs[SPR_ADDR_REG]+ (uint8_t*)&spriteRam[0], &val, 1);
             regs[SPR_ADDR_REG]++;
             break;
-        case BG_SCROLLING_OFFSET_REG:
+        case VRAM_ADDR_REG1:
             if (vramMachineState == 0) {
                 xScrollOrigin = val;
                 vramMachineState = 1;
@@ -65,7 +70,7 @@ void Ppu::writeReg(uint32_t reg, uint8_t val)
                 vramMachineState = 0;
             }
             break;
-        case VRAM_ADDR_REG:
+        case VRAM_ADDR_REG2:
             regs[CONTROL1_REG] &= ~0x3;
             xScrollOrigin = 0;
             yScrollOrigin = 0;
@@ -94,7 +99,8 @@ uint8_t Ppu::readReg(uint32_t reg)
     switch (reg) {
         case CONTROL1_REG:
         case CONTROL2_REG:
-            return regs[reg]; 
+            // Write only registers.
+            return 0; 
             break;
         case STATUS_REG:
             // vblank status bit is clear on read
@@ -106,16 +112,14 @@ uint8_t Ppu::readReg(uint32_t reg)
             return regs[reg]; 
             break;
         case SPR_ADDR_REG:
-            return regs[reg]; 
-            break;
         case SPR_DATA_REG:
-            memcpy(&ret, (uint8_t*)&spriteRam[0] + regs[SPR_ADDR_REG], 1);
-            return ret;
+            // Write only registers.
+            return 0; 
             break;
-        case BG_SCROLLING_OFFSET_REG:
+        case VRAM_ADDR_REG1:
             assert(0);
             break;
-        case VRAM_ADDR_REG:
+        case VRAM_ADDR_REG2:
             assert(0);
             break;
         case VRAM_DATA_REG:
