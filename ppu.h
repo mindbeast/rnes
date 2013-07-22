@@ -101,8 +101,8 @@ public:
         STATUS_REG              = 2,
         SPR_ADDR_REG            = 3,
         SPR_DATA_REG            = 4,
-        BG_SCROLLING_OFFSET_REG = 5,
-        VRAM_ADDR_REG           = 6,
+        VRAM_ADDR_REG1          = 5,
+        VRAM_ADDR_REG2          = 6,
         VRAM_DATA_REG           = 7,
         REG_COUNT               = 8,
     };
@@ -264,7 +264,14 @@ private:
         uint8_t attr;
         uint8_t xCoord;
     } spriteRam[64] = {{0}};
-    uint32_t vramMachineState = 0;
+
+
+    uint32_t vramToggle = 0;
+    uint32_t vramFineXScroll = 0;
+    uint16_t vramCurrentAddr = 0;
+    uint16_t vramTempAddr = 0;
+
+
     uint16_t vramMachineAddr = 0;
     uint8_t vramReadLatch = 0;
     
