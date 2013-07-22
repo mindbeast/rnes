@@ -40,8 +40,9 @@ private:
     // processor status register
     uint8_t status;
     
+    // Turn on debug prints
     static const bool debug = false;
-    
+
     // stack pointer base
     static const uint16_t base = 0x0100;
     static const uint8_t stackPointerStart = 0xfd;
@@ -54,7 +55,6 @@ private:
     
     // irq vector base
     static const uint16_t irqBaseAddr = 0xfffe;
-    
     
     // max instruction length
     static const int maxInstLength = 3;
