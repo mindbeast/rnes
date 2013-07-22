@@ -85,7 +85,7 @@ uint8_t Ppu::readReg(uint32_t reg)
         vramMachineState = 0;
     }
     else if (reg == VRAM_ADDR_REG) {
-        assert(0);
+        //assert(0);
     }
     else if (reg == VRAM_DATA_REG) {
         ret = vramReadLatch;
@@ -96,7 +96,7 @@ uint8_t Ppu::readReg(uint32_t reg)
         memcpy(&ret, (uint8_t*)&spriteRam[0] + regs[SPR_ADDR_REG], 1);
     }
     else if (reg == BG_SCROLLING_OFFSET_REG) {
-        assert(0);
+        //assert(0);
     }
     
     return ret;
