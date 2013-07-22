@@ -4,6 +4,8 @@ LD       = g++
 
 ifdef RELEASE 
 CPPFLAGS   = -O3 -fno-omit-frame-pointer -ggdb
+else
+CPPFLAGS   = -g
 endif
 CPPFLAGS  += -std=c++11 -Wall
 
@@ -47,7 +49,7 @@ $(BINDIR) :
 
 # link the kernel 
 $(TARGET) : $(OBJS) 
-	$(LD) $(OBJS) $(LDFLAGS) -o $@ 
+	$(LD) $(CPPFLAGS) $(OBJS) $(LDFLAGS) -o $@ 
 
 # make sure the bin directory exists before building 
 $(OBJS) : | $(BINDIR) 

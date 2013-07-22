@@ -54,9 +54,11 @@ void Sdl::parseInput()
                         button = BUTTON_SELECT;
                         break;
                     case SDLK_z:
+                    case SDLK_n:
                         button = BUTTON_A;
                         break;
                     case SDLK_x:
+                    case SDLK_m:
                         button = BUTTON_B;
                         break;
                     default:

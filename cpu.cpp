@@ -19,10 +19,13 @@ void Cpu::store(uint16_t addr, uint8_t val)
     nes->cpuMemWrite(addr, val);
 }
 
-bool Cpu::intRequested() {
+bool Cpu::intRequested()
+{
     return nes->isRequestingInt();
 }
-bool Cpu::nmiRequested() {
+
+bool Cpu::nmiRequested()
+{
     return nes->isRequestingNmi();;
 }
 
