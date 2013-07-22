@@ -36,70 +36,104 @@ void Ppu::store(uint16_t addr, uint8_t val)
 
 void Ppu::writeReg(uint32_t reg, uint8_t val)
 {
-    if (reg == VRAM_ADDR_REG) {
-        
-        regs[0] &= ~0x3;
-        xScrollOrigin = 0;
-        yScrollOrigin = 0;
-        if (vramMachineState == 0) {
-            vramMachineAddr = 0;
-            vramMachineAddr = ((uint16_t)val << 8);
-            vramMachineState = 1;
-        }
-        else {
-            vramMachineAddr = val | vramMachineAddr;
-            vramMachineState = 0;
-        }
+    // CONTROL1_REG            = 0,
+    // CONTROL2_REG            = 1,
+    // STATUS_REG              = 2,
+    // SPR_ADDR_REG            = 3,
+    // SPR_DATA_REG            = 4,
+    // VRAM_ADDR_REG1          = 5,
+    // VRAM_ADDR_REG2          = 6,
+    // VRAM_DATA_REG           = 7,
+    switch (reg) {
+        case CONTROL1_REG:
+        case CONTROL2_REG:
+            // Write only registers.
+            regs[reg] = val;
+            break;
+        case STATUS_REG:
+            // Read only register.
+            break;
+        case SPR_ADDR_REG:
+            regs[reg] = val;
+            break;
+        case SPR_DATA_REG:
+            memcpy(regs[SPR_ADDR_REG]+ (uint8_t*)&spriteRam[0], &val, 1);
+            regs[SPR_ADDR_REG]++;
+            break;
+        case VRAM_ADDR_REG1:
+            if (vramMachineState == 0) {
+                xScrollOrigin = val;
+                vramMachineState = 1;
+            }
+            else {
+                yScrollOrigin = val;
+                vramMachineState = 0;
+            }
+            break;
+        case VRAM_ADDR_REG2:
+            regs[CONTROL1_REG] &= ~0x3;
+            xScrollOrigin = 0;
+            yScrollOrigin = 0;
+            if (vramMachineState == 0) {
+                vramMachineAddr = 0;
+                vramMachineAddr = ((uint16_t)val << 8);
+                vramMachineState = 1;
+            }
+            else {
+                vramMachineAddr = val | vramMachineAddr;
+                vramMachineState = 0;
+            }
+            break;
+        case VRAM_DATA_REG:
+            nes->vidMemWrite(vramMachineAddr, val);
+            vramMachineAddr += vramAddrInc();
+            break;
+        default:
+            break;
     }
-    else if (reg == VRAM_DATA_REG) {
-        nes->vidMemWrite(vramMachineAddr, val);
-        vramMachineAddr += vramAddrInc();
-    }
-    else if (reg == SPR_DATA_REG) {
-        memcpy(regs[SPR_ADDR_REG]+ (uint8_t*)&spriteRam[0], &val, 1);
-        regs[SPR_ADDR_REG]++;
-    }
-    else if (reg == BG_SCROLLING_OFFSET_REG) {
-        if (vramMachineState == 0) {
-            xScrollOrigin = val;
-            vramMachineState = 1;
-            
-        }
-        else {
-            yScrollOrigin = val;
-            vramMachineState = 0;
-        }
-    }
-    regs[reg] = val;
 }
 
 uint8_t Ppu::readReg(uint32_t reg)
 {
-    uint8_t ret = regs[reg];
-    
-    // vblank status bit is clear on read
-    if (reg == STATUS_REG) {
-        regs[STATUS_REG] |= regs[STATUS_REG] & ~STATUS_VBLANK_HIT;
-        // reset the scroll/vram machine flip flops
-        scrollingMachineState = 0;
-        vramMachineState = 0;
+    uint8_t ret;
+    switch (reg) {
+        case CONTROL1_REG:
+        case CONTROL2_REG:
+            // Write only registers.
+            return 0; 
+            break;
+        case STATUS_REG:
+            // vblank status bit is clear on read
+            regs[STATUS_REG] |= regs[STATUS_REG] & ~STATUS_VBLANK_HIT;
+            // reset the scroll/vram machine flip flops
+            scrollingMachineState = 0;
+            vramMachineState = 0;
+            // and return the reg value 
+            return regs[reg]; 
+            break;
+        case SPR_ADDR_REG:
+        case SPR_DATA_REG:
+            // Write only registers.
+            return 0; 
+            break;
+        case VRAM_ADDR_REG1:
+            assert(0);
+            break;
+        case VRAM_ADDR_REG2:
+            assert(0);
+            break;
+        case VRAM_DATA_REG:
+            ret = vramReadLatch;
+            vramReadLatch = nes->vidMemRead(vramMachineAddr);
+            vramMachineAddr += vramAddrInc();
+	    return ret;
+            break;
+        default:
+	    assert(0);
+            break;
+>>>>>>> c222cb4129d272a90c301c269e100d818383d999
     }
-    else if (reg == VRAM_ADDR_REG) {
-        //assert(0);
-    }
-    else if (reg == VRAM_DATA_REG) {
-        ret = vramReadLatch;
-        vramReadLatch = nes->vidMemRead(vramMachineAddr);
-        vramMachineAddr += vramAddrInc();
-    }
-    else if (reg == SPR_DATA_REG) {
-        memcpy(&ret, (uint8_t*)&spriteRam[0] + regs[SPR_ADDR_REG], 1);
-    }
-    else if (reg == BG_SCROLLING_OFFSET_REG) {
-        //assert(0);
-    }
-    
-    return ret;
+    return 0;
 }
 
 uint32_t Ppu::getNameTableXOffset()
