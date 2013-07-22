@@ -131,7 +131,6 @@ uint8_t Ppu::readReg(uint32_t reg)
         default:
 	    assert(0);
             break;
->>>>>>> c222cb4129d272a90c301c269e100d818383d999
     }
     return 0;
 }
