@@ -64,7 +64,7 @@ void Ppu::writeReg(uint32_t reg, uint8_t val)
         case VRAM_ADDR_REG1:
             if (vramToggle == 0) {
                 vramTempAddr = (0xffe0 & vramTempAddr) | (val >> 3) ;
-		vramFineXScroll = val & 0x7;
+                vramFineXScroll = val & 0x7;
             }
             else {
                 vramTempAddr = (0xc1f & vramTempAddr) | (((uint16_t)val & 0x7) << 12) | (((uint16_t)val & 0xf8) << 2);
@@ -74,7 +74,7 @@ void Ppu::writeReg(uint32_t reg, uint8_t val)
         case VRAM_ADDR_REG2:
             regs[CONTROL1_REG] &= ~0x3;
             if (vramToggle == 0) {
-		vramTempAddr = (((uint16_t)val & 0x3f) << 8) | (vramTempAddr & 0xff);
+                vramTempAddr = (((uint16_t)val & 0x3f) << 8) | (vramTempAddr & 0xff);
             }
             else {
                 vramTempAddr = (uint16_t)val | (vramTempAddr & 0xff00);
