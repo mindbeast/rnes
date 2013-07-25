@@ -206,6 +206,65 @@ public:
         assert(y < 30);
         return load(nameTableAddr + nameTableWidth * y + x);
     }
+    void vramCoarseXInc() {
+        if ((vramCurrentAddr & 0x1f) == 31) {
+            // coarse x = 0
+            vramCurrentAddr &= ~0x001f;
+            // switch horizontal nametable
+            vramCurrentAddr ^= 0x0400;
+        }  
+        else {
+            // increment coarse x
+            vramCurrentAddr += 1;
+        }
+    }
+    void vramYInc() {
+        if ((vramCurrentAddr & 0x7000) != 0x7000) {
+            vramCurrentAddr += 0x1000;
+        }
+        else {
+            vramCurrentAddr &= ~0x7000;
+            int y = (vramCurrentAddr & 0x03e0) >> 5;
+            if (y == 29) {
+                y = 0;
+                vramCurrentAddr ^= 0x0800;
+            }
+            else if (y == 31) {
+                y = 0;
+            }
+            else {
+                y += 1;
+            }
+            vramCurrentAddr = (vramCurrentAddr & ~0x03e0) | (y << 5);
+        }
+    }
+    void vramXReset() {
+        vramCurrentAddr = (vramCurrentAddr & 0xfbe0) | (vramTempAddr & ~0xfbe0);
+    }
+    void vramYReset() {
+        vramCurrentAddr = (vramCurrentAddr & ~0xfbe0) | (vramTempAddr & 0xfbe0);
+    }
+    uint16_t getTileAddr(uint16_t vramCurrent) {
+        return 0x2000 | (vramCurrent & 0xfff);
+    }
+    uint32_t getFineY(uint16_t vramCurrent) {
+        return (0x7000 & vramCurrent) >> 12;
+    }
+    uint16_t getAttrAddr(uint16_t vramCurrent) {
+        return 0x23c0 | (vramCurrent & 0xc00) | ((vramCurrent >> 4) & 0x38) | ((vramCurrent >> 2) & 0x7);
+    }
+    uint16_t loadNameTile(uint16_t addr) {
+        uint16_t ret = 0;
+        uint16_t a = load(addr);
+        uint16_t b = load(addr + 8);
+        for (uint32_t i = 0; i < 8; i++) {
+            ret |= ((1u << i) & a) << i;
+            ret |= ((1u << i) & b) << (i + 1);
+        }
+        return ret;
+    }
+
+
     uint32_t getNameTableXOffset();
     uint32_t getNameTableYOffset();
     uint8_t getColorFromPatternTable(uint16_t patternTable, bool is8x8, int offset, uint32_t x, uint32_t y);
@@ -213,6 +272,7 @@ public:
     uint8_t getAttributeTablePalette(uint16_t nameTableAddr, uint32_t x, uint32_t y);
     uint32_t renderBackgroundPixel(int x, int y, bool& transparent);
     void render(uint32_t scanline);
+    void renderv2(uint32_t scanline);
     void tick();
     
     void run(uint32_t cpuCycle)
@@ -264,7 +324,6 @@ private:
         uint8_t attr;
         uint8_t xCoord;
     } spriteRam[64] = {{0}};
-
 
     uint32_t vramToggle = 0;
     uint32_t vramFineXScroll = 0;
