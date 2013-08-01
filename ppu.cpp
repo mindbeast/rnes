@@ -58,12 +58,12 @@ void Ppu::writeReg(uint32_t reg, uint8_t val)
             regs[reg] = val;
             break;
         case SPR_DATA_REG:
-            memcpy(regs[SPR_ADDR_REG]+ (uint8_t*)&spriteRam[0], &val, 1);
+            memcpy(regs[SPR_ADDR_REG] + (uint8_t*)&spriteRam[0], &val, 1);
             regs[SPR_ADDR_REG]++;
             break;
         case VRAM_ADDR_REG1:
             if (vramToggle == 0) {
-                vramTempAddr = (0xffe0 & vramTempAddr) | (val >> 3) ;
+                vramTempAddr = (0xffe0 & vramTempAddr) | (val >> 3);
                 vramFineXScroll = val & 0x7;
             }
             else {
@@ -87,6 +87,7 @@ void Ppu::writeReg(uint32_t reg, uint8_t val)
             vramCurrentAddr += vramAddrInc();
             break;
         default:
+            assert(0);
             break;
     }
 }
@@ -98,6 +99,7 @@ uint8_t Ppu::readReg(uint32_t reg)
         case CONTROL1_REG:
         case CONTROL2_REG:
             // Write only registers.
+            assert(0);
             return 0; 
             break;
         case STATUS_REG:
@@ -111,6 +113,7 @@ uint8_t Ppu::readReg(uint32_t reg)
         case SPR_ADDR_REG:
         case SPR_DATA_REG:
             // Write only registers.
+            assert(0);
             return 0; 
             break;
         case VRAM_ADDR_REG1:
@@ -377,38 +380,48 @@ void Ppu::renderv2(uint32_t scanline)
         uint32_t patternTableAddr = getBgPatternTableAddr();
         
         // render background
-        for (uint32_t i = 0; i < renderWidth; i+=8) {
-            uint16_t tileAddr = getTileAddr(vramCurrentAddr);
+        for (uint32_t xBgOffset = 0; xBgOffset < renderWidth;) {
+            // Get next tile and attribute addresses
+            uint16_t nameAddr = getTileAddr(vramCurrentAddr);
             uint16_t attrAddr = getAttrAddr(vramCurrentAddr);
-            uint16_t tile = loadNameTile(load(tileAddr) * 16 + patternTableAddr) + getFineY(vramCurrentAddr);
-            printf("%x ", (tile));
-            uint8_t attr = load(attrAddr);
-            uint32_t y = scanline;
-            uint32_t tileOffsetY = (y % 32) / 16;
 
-            for (uint32_t j = 0; j < 8; j++) {
-                uint32_t x = i + j;
-                uint32_t color = (tile >> ((7 - j) * 2)) & 0x3;
-                uint32_t tileOffsetX = (x % 32) / 16;
+            // Load attribute and pattern
+            uint16_t patternAddr = load(nameAddr) * 16 + patternTableAddr + getFineY(vramCurrentAddr);
+            assert(patternAddr >= patternTableAddr and patternAddr < (patternTableAddr + patternTableSize));
+            uint16_t pattern = loadPatternTile(patternAddr);
+            uint8_t attr = load(attrAddr);
+            uint32_t tileOffsetY = (nameAddr & 0x3ff) >> 5 >> 1;
+
+            // Render the pattern 
+            uint32_t localFineXScroll = vramFineXScroll;
+            for (uint32_t tileXOffset = localFineXScroll & 0x3;
+                 tileXOffset < 8 and xBgOffset < renderWidth;
+                 tileXOffset++, xBgOffset++) {
+
+                uint32_t color = (pattern >> ((7 - tileXOffset) * 2)) & 0x3;
+                uint32_t tileOffsetX = (nameAddr & 0x3ff) & 0x1f >> 1;
                 uint32_t subNibbleAttr = tileOffsetX + tileOffsetY * 2;
                 uint32_t palette = (attr >> (2 * subNibbleAttr)) & 0x3;
                 bool transparent = (color == 0);
-
                 uint32_t pixel = getColor(palette, color, false);
+            
+                if (scanline < 128 and xBgOffset < 128 and ((xBgOffset % 8) == 0)) {
+                    if (xBgOffset == 0) {
+                        std::cerr << std::endl;
+                    }
+                    std::cerr << std::hex << "(" << std::setw(4) << patternAddr << "," << std::setw(4) << nameAddr << ") ";
+                }
 
-                if (!pixelWritten[i + j]) {
-                    scanlineBuffer[i + j] = pixel;
+                if (!pixelWritten[xBgOffset]) {
+                    scanlineBuffer[xBgOffset] = pixel;
                 }
-                else if (pixelBgInFront[i + j] and not transparent) {
-                    scanlineBuffer[i + j] = pixel;
+                else if (pixelBgInFront[xBgOffset] and not transparent) {
+                    scanlineBuffer[xBgOffset] = pixel;
                 }
-                vramFineXScroll += 1;
+                localFineXScroll++; 
             }
             vramCoarseXInc();
         }
-        vramCoarseXInc();
-        vramCoarseXInc();
-        printf("\n");
     }
     
     // dump pixels to display
@@ -426,14 +439,8 @@ void Ppu::tick()
     uint32_t lineClock = getScanlineOffset();
     bool isVblank = scanline >= 240 and scanline <= 260;
     
-    /*
-    if (scanline < 240 and lineClock == 0) {
-        render(scanline);
-    }
-    */
-
+    // Update vram registers
     if (!isVblank) {
-        // Increment vertical position in vramCurrentAddr
         if (lineClock == 255 and scanline < 240) {
             renderv2(scanline);
         }
@@ -443,14 +450,8 @@ void Ppu::tick()
         if (lineClock == 257) {
             vramXReset();
         }
-        /*
-        if ((lineClock >= 328) and (lineClock % 8 == 0)) {
-            coarseXInc();
-        }
-        */
         if (scanline == 261 and lineClock >= 280 and lineClock <= 304) {
             vramYReset();
-            printf("\n");
         }
     }
     

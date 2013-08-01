@@ -44,6 +44,8 @@ public:
     
     static const uint32_t maxSpriteCount = 64;
     static const uint32_t maxRenderedSpritePerScanline = 8;
+
+    static const uint32_t patternTableSize = 0x1000;
     
     static const uint32_t frameTimeMs = 1000 / 60;
     
@@ -157,10 +159,10 @@ public:
         return addr;
     }
     uint16_t getSpritePatternTableAddr() {
-        return (regs[CONTROL1_REG] & CONTROL_PATTERN_TABLE_ADDR_SPR) ? 0x1000 : 0;
+        return (regs[CONTROL1_REG] & CONTROL_PATTERN_TABLE_ADDR_SPR) ? 0x1000 : 0x0;
     }
     uint16_t getBgPatternTableAddr() {
-        return (regs[CONTROL1_REG] & CONTROL_PATTERN_TABLE_ADDR_SCR) ? 0x1000 : 0;
+        return (regs[CONTROL1_REG] & CONTROL_PATTERN_TABLE_ADDR_SCR) ? 0x1000 : 0x0;
     }
     bool nmiOnVblank() {
         return (regs[CONTROL1_REG] & CONTROL_NMI_ON_VBLANK) != 0;
@@ -253,7 +255,7 @@ public:
     uint16_t getAttrAddr(uint16_t vramCurrent) {
         return 0x23c0 | (vramCurrent & 0xc00) | ((vramCurrent >> 4) & 0x38) | ((vramCurrent >> 2) & 0x7);
     }
-    uint16_t loadNameTile(uint16_t addr) {
+    uint16_t loadPatternTile(uint16_t addr) {
         uint16_t ret = 0;
         uint16_t a = load(addr);
         uint16_t b = load(addr + 8);
