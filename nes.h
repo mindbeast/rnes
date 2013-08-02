@@ -67,7 +67,7 @@ public:
 
 class Nes {
     static const uint32_t cpuMemorySize = 1 << 16;
-    static const uint32_t videoMemorySize = (1 << 11) + (1 << 13);
+    static const uint32_t videoMemorySize = 1 << 14;
     
     static const uint16_t cartridgeRomBase = 0x8000;
     static const uint16_t cartridgeRomSize = 0x4000;

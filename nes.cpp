@@ -28,7 +28,7 @@ uint16_t Nes::translatePpuWindows(uint16_t addr)
     if (addr >= 0x3000 && addr < 0x3f00) {
         addr = (addr & (0xf00 - 1)) + 0x2000;
     }
-    if (addr >= 0x4000 && addr < (0x4000 + 0xc000)) {
+    if (addr >= 0x4000) {
         addr = addr - 0x4000;
     }
     
@@ -125,11 +125,13 @@ uint8_t Nes::cpuMemRead(uint16_t addr)
 
 void Nes::vidMemWrite(uint16_t addr, uint8_t val)
 {
+    assert(translatePpuWindows(addr) < videoMemorySize);
     vidMemory[translatePpuWindows(addr)] = val;
 }
 
 uint8_t Nes::vidMemRead(uint16_t addr)
 {
+    assert(translateCpuWindows(addr) < cpuMemorySize);
     return vidMemory[translatePpuWindows(addr)];
 }
 
