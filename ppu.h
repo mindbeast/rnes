@@ -267,14 +267,8 @@ public:
     }
 
 
-    uint32_t getNameTableXOffset();
-    uint32_t getNameTableYOffset();
-    uint8_t getColorFromPatternTable(uint16_t patternTable, bool is8x8, int offset, uint32_t x, uint32_t y);
-    uint8_t getNameTableColor(uint16_t nameTableAddr, uint16_t patternTableAddr, bool is8x8, uint32_t x, uint32_t y);
-    uint8_t getAttributeTablePalette(uint16_t nameTableAddr, uint32_t x, uint32_t y);
-    uint32_t renderBackgroundPixel(int x, int y, bool& transparent);
+    template <bool is8x8> uint8_t getColorFromPatternTable(uint16_t patternTable, int offset, uint32_t x, uint32_t y);
     void render(uint32_t scanline);
-    void renderv2(uint32_t scanline);
     void tick();
     
     void run(uint32_t cpuCycle)
@@ -342,8 +336,6 @@ private:
     
     uint32_t lastFrameTimeMs = 0;
     
-    uint32_t bgScanlineBuffer[256];
-    uint32_t spriteScanlineBuffer[256];
     bool pixelWritten[256];
     uint32_t scanlineBuffer[256];    
 
