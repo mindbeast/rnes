@@ -72,7 +72,6 @@ void Ppu::writeReg(uint32_t reg, uint8_t val)
             vramToggle = not vramToggle;
             break;
         case VRAM_ADDR_REG2:
-            //regs[CONTROL1_REG] &= ~0x3;
             if (vramToggle == 0) {
                 vramTempAddr = (((uint16_t)val & 0x3f) << 8) | (vramTempAddr & 0xff);
             }
@@ -97,18 +96,23 @@ uint8_t Ppu::readReg(uint32_t reg)
     uint8_t ret;
     switch (reg) {
         case CONTROL1_REG:
+            assert(0); 
+            // GUESS: Write only registers.
+            return regs[reg];
+            break;
         case CONTROL2_REG:
-            // Write only registers.
-            assert(0);
-            return 0; 
+            assert(0); 
+            // GUESS: Write only registers.
+            return regs[reg];
             break;
         case STATUS_REG:
+            ret = regs[reg];
             // vblank status bit is clear on read
-            regs[STATUS_REG] |= regs[STATUS_REG] & ~STATUS_VBLANK_HIT;
+            clearVblankFlag();
             // reset the scroll/vram machine flip flops
             vramToggle = 0;
             // and return the reg value 
-            return regs[reg]; 
+            return ret;
             break;
         case SPR_ADDR_REG:
         case SPR_DATA_REG:
@@ -117,10 +121,14 @@ uint8_t Ppu::readReg(uint32_t reg)
             return 0; 
             break;
         case VRAM_ADDR_REG1:
-            assert(0);
+            //assert(0); 
+            // This is a guess, we aren't expecting reads here.
+            return vramCurrentAddr;
             break;
         case VRAM_ADDR_REG2:
-            assert(0);
+            assert(0); 
+            // This is a guess, we aren't expecting reads here.
+            return vramTempAddr;
             break;
         case VRAM_DATA_REG:
             ret = vramReadLatch;
@@ -218,6 +226,7 @@ uint32_t Ppu::renderBackgroundPixel(int x, int y, bool& transparent)
     return getColor(palette, color, false);
 }
 
+/*
 void Ppu::render(uint32_t scanline)
 {
     bool spriteSize8x8 = isSpriteSize8x8();
@@ -309,6 +318,7 @@ void Ppu::render(uint32_t scanline)
     }
     postRender();
 }
+*/
 
 void Ppu::renderv2(uint32_t scanline)
 {
@@ -316,9 +326,53 @@ void Ppu::renderv2(uint32_t scanline)
     uint32_t spriteSize = spriteSize8x8 ? 8 : 16;
     
     // Indicate that all bg elements are transparent
-    memset(pixelBgInFront, 0, sizeof(pixelBgInFront));
+    //memset(pixelBgInFront, 0, sizeof(pixelBgInFront));
     memset(pixelWritten, 0, sizeof(pixelWritten));
+    memset(bgScanlineBuffer, 0, sizeof(bgScanlineBuffer));
+    memset(spriteScanlineBuffer, 0, sizeof(spriteScanlineBuffer));
     memset(scanlineBuffer, 0, sizeof(scanlineBuffer));
+    
+    // render bg
+    if (renderBackgroundEnabled()) {
+        uint32_t patternTableAddr = getBgPatternTableAddr();
+        uint32_t tempFineXScroll = vramFineXScroll;
+        
+        // render background
+        for (uint32_t xBgOffset = 0; xBgOffset < renderWidth;) {
+            // Get next tile and attribute addresses
+            uint16_t nameAddr = getTileAddr(vramCurrentAddr);
+            uint16_t attrAddr = getAttrAddr(vramCurrentAddr);
+
+            // Load attribute and pattern
+            uint16_t patternAddr = load(nameAddr) * 16 + patternTableAddr + getFineY(vramCurrentAddr);
+            assert(patternAddr >= patternTableAddr and patternAddr < (patternTableAddr + patternTableSize));
+            uint16_t pattern = loadPatternTile(patternAddr);
+            uint8_t attr = load(attrAddr);
+            uint32_t tileOffsetY = ((nameAddr & 0x3ff) >> 5 >> 1) % 2;
+
+            // Render the pattern 
+            for (uint32_t tileXOffset = tempFineXScroll;
+                 tileXOffset < 8 and xBgOffset < renderWidth;
+                 tileXOffset++, xBgOffset++) {
+
+                uint32_t color = (pattern >> ((7 - tileXOffset) * 2)) & 0x3;
+                uint32_t tileOffsetX = (((nameAddr & 0x3ff) & 0x1f) >> 1) % 2;
+                uint32_t subNibble = tileOffsetX + tileOffsetY * 2;
+                assert(subNibble >= 0 and subNibble < 4);
+                uint32_t palette = (attr >> (2 * subNibble)) & 0x3;
+                bool transparent = (color == 0);
+                uint32_t pixel = getColor(palette, color, false);
+            
+                scanlineBuffer[xBgOffset] = pixel;
+                if (!transparent) {
+                    pixelWritten[xBgOffset] = true;
+                }
+                tempFineXScroll++;
+                tempFineXScroll &= 0x7;
+            }
+            vramCoarseXInc();
+        }
+    }
     
     // render sprites
     if (renderSpritesEnabled()) {
@@ -353,16 +407,15 @@ void Ppu::renderv2(uint32_t scanline)
                 
                 // Need to do some bounds checking bullshit here
                 uint32_t xCoordinate = spriteRam[sprite].xCoord + j;
-                if (color and (xCoordinate < renderWidth)) {
-                    scanlineBuffer[xCoordinate] = getColor(spriteRam[sprite].attr & 0x3, color, true);
-                    pixelBgInFront[xCoordinate] = (spriteRam[sprite].attr & (1u << 5)) != 0;
-                    pixelWritten[xCoordinate]   = true;
+                if ((color != 0) and (xCoordinate < renderWidth)) {
+                    bool bgPixelInFront = (spriteRam[sprite].attr & (1u << 5)) != 0;
+                    if ((bgPixelInFront and !pixelWritten[xCoordinate]) or !bgPixelInFront) {
+                        scanlineBuffer[xCoordinate] = getColor(spriteRam[sprite].attr & 0x3, color, true);
+                    }
                 }
                 // Do sprite 0 collision detection
-                if (sprite == 0 and color != 0 and (xCoordinate < renderWidth - 1)) {
-                    bool transparent;
-                    renderBackgroundPixel(xCoordinate, scanline, transparent);
-                    if (!transparent) {
+                if ((sprite == 0) and (color != 0) and (xCoordinate < renderWidth - 1)) {
+                    if (pixelWritten[xCoordinate]) {
                         setSprite0Hit();
                     }
                 }
@@ -375,54 +428,6 @@ void Ppu::renderv2(uint32_t scanline)
         }
     }
     
-    // render bg
-    if (renderBackgroundEnabled()) {
-        uint32_t patternTableAddr = getBgPatternTableAddr();
-        
-        // render background
-        for (uint32_t xBgOffset = 0; xBgOffset < renderWidth;) {
-            // Get next tile and attribute addresses
-            uint16_t nameAddr = getTileAddr(vramCurrentAddr);
-            uint16_t attrAddr = getAttrAddr(vramCurrentAddr);
-
-            // Load attribute and pattern
-            uint16_t patternAddr = load(nameAddr) * 16 + patternTableAddr + getFineY(vramCurrentAddr);
-            assert(patternAddr >= patternTableAddr and patternAddr < (patternTableAddr + patternTableSize));
-            uint16_t pattern = loadPatternTile(patternAddr);
-            uint8_t attr = load(attrAddr);
-            uint32_t tileOffsetY = (nameAddr & 0x3ff) >> 5 >> 1;
-
-            // Render the pattern 
-            uint32_t localFineXScroll = vramFineXScroll;
-            for (uint32_t tileXOffset = localFineXScroll & 0x3;
-                 tileXOffset < 8 and xBgOffset < renderWidth;
-                 tileXOffset++, xBgOffset++) {
-
-                uint32_t color = (pattern >> ((7 - tileXOffset) * 2)) & 0x3;
-                uint32_t tileOffsetX = (nameAddr & 0x3ff) & 0x1f >> 1;
-                uint32_t subNibbleAttr = tileOffsetX + tileOffsetY * 2;
-                uint32_t palette = (attr >> (2 * subNibbleAttr)) & 0x3;
-                bool transparent = (color == 0);
-                uint32_t pixel = getColor(palette, color, false);
-            
-                if (scanline < 128 and xBgOffset < 128 and ((xBgOffset % 8) == 0)) {
-                    if (xBgOffset == 0) {
-                        std::cerr << std::endl;
-                    }
-                    std::cerr << std::hex << "(" << std::setw(4) << patternAddr << "," << std::setw(4) << nameAddr << ") ";
-                }
-
-                if (!pixelWritten[xBgOffset]) {
-                    scanlineBuffer[xBgOffset] = pixel;
-                }
-                else if (pixelBgInFront[xBgOffset] and not transparent) {
-                    scanlineBuffer[xBgOffset] = pixel;
-                }
-                localFineXScroll++; 
-            }
-            vramCoarseXInc();
-        }
-    }
     
     // dump pixels to display
     preRender();
@@ -440,7 +445,7 @@ void Ppu::tick()
     bool isVblank = scanline >= 240 and scanline <= 260;
     
     // Update vram registers
-    if (!isVblank) {
+    if (!isVblank and renderBackgroundEnabled()) {
         if (lineClock == 255 and scanline < 240) {
             renderv2(scanline);
         }

@@ -342,9 +342,11 @@ private:
     
     uint32_t lastFrameTimeMs = 0;
     
+    uint32_t bgScanlineBuffer[256];
+    uint32_t spriteScanlineBuffer[256];
     bool pixelWritten[256];
-    bool pixelBgInFront[256];
-    uint32_t scanlineBuffer[256];
+    uint32_t scanlineBuffer[256];    
+
 };
 
 
