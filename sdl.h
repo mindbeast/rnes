@@ -35,33 +35,19 @@ private:
     static const int displayWidth = dispMultiple * renderWidth;
     static const int bitsPerPixel;
     bool buttonState[BUTTON_COUNT] = {false};
+    typedef void (Callback)(void *data, uint8_t *stream, int len);
+    Callback *audioCallback;
+    void *callbackData;
+    uint32_t audioFreq;
+    uint32_t audioBufferSize;
     
 public:
-    Sdl() {}
-    int init() {
-        int ret, flags;
-        const SDL_VideoInfo *info;
-        
-        ret = SDL_Init(SDL_INIT_EVERYTHING);
-        if (ret < 0) {
-            return -1;
-        }
-        
-        info = SDL_GetVideoInfo();
-        if (!info) {
-            return -1;
-        }
-        
-        flags = SDL_HWSURFACE | SDL_DOUBLEBUF | SDL_ASYNCBLIT;
-        display = SDL_SetVideoMode(displayWidth, displayHeight, 32, flags);
-        if (!display) {
-            return -1;
-        }
-        
-        SDL_WM_SetCaption("rnes", "rnes");
-        
-        return 0;
-    }
+    Sdl();
+    int initAudio();
+    int initDisplay();
+    ~Sdl();
+
+    // Video functions
     void preRender() {
         SDL_LockSurface(display);
     }
@@ -87,11 +73,13 @@ public:
     }
     void parseInput();
     bool getButtonState(int button);
-    
-    ~Sdl()
-    {
-        SDL_FreeSurface(display);
-    }
+
+    // Audio functions
+    void callbackWrapper(uint8_t *stream, int len);
+    void registerAudioCallback(Callback *audioCallback, void *data);
+    void unregisterAudioCallback();
+    uint32_t getSampleRate();
+    uint32_t getChunkSize();
 };
 
 #endif

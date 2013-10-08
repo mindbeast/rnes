@@ -85,6 +85,7 @@ class Nes {
     static const uint16_t nameTable2 = 0x2800;
     static const uint16_t nameTable3 = 0x2c00;
     static const uint16_t nameTableSize = 0x400;
+
     
     uint8_t vidMemory[videoMemorySize] = {0};
     uint8_t cpuMemory[cpuMemorySize] = {0};
@@ -99,10 +100,10 @@ class Nes {
 
     uint64_t cycles = 0;
     
+    Sdl sdl;
     Cpu cpu;
     Ppu ppu;
     Apu apu;
-    Sdl sdl;
     Controller pad;
     
     uint16_t translateCpuWindows(uint16_t addr);
@@ -135,7 +136,7 @@ public:
     int mapRom(const std::string &filename);
     int loadRom(const std::string &filename);
     void run();
-    Nes() : cpu{this}, ppu{this,&sdl}, apu{this, &sdl}, sdl{}, pad{&sdl} {}
+    Nes() : sdl{}, cpu{this}, ppu{this,&sdl}, apu{this, &sdl}, pad{&sdl} {}
     ~Nes();
 };
 

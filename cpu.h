@@ -58,7 +58,7 @@ private:
     
     // max instruction length
     static const int maxInstLength = 3;
-    
+
     enum Flag {
         CARRY       = 1 << 0, // set when accumlator rolls over from 0xff -> 0x00
         ZERO        = 1 << 1, // set when the result of any operation is 0x00

@@ -10,17 +10,253 @@
 #define __APU_H__
 
 #include <cstdint>
+#include <vector>
+#include <cassert>
+#include <iostream>
 
 class Sdl;
 class Nes;
 
+static bool isPow2(uint32_t i) {
+    return ((i - 1) & i) == 0;
+}
+
+template <typename T> struct RingBuffer {
+    std::vector<T> buffer;
+    uint32_t size;
+    uint64_t get, put;
+    RingBuffer(uint32_t sz) : buffer(sz, 0), size{sz}, get{0}, put{0} {
+        assert(isPow2(sz));
+    }
+    ~RingBuffer() {}
+    bool hasData(uint32_t count) {
+        return (get + count) <= put;
+    }
+    bool hasEmptySpace(uint32_t count) {
+        return (put + count - get) <= size;
+    }
+    void putData(const T *in, uint32_t count) {
+        assert(hasEmptySpace(count));
+        for (uint32_t i = 0; i < count; i++) {
+            buffer[put & (size - 1)] = in[i];
+            put += 1;
+        }
+    }
+    void getData(T *out, uint32_t count) {
+        assert(hasData(count)); 
+        for (uint32_t i = 0; i < count; i++) {
+            out[i] = buffer[get & (size - 1)];
+            get += 1;
+        }
+    }
+    uint32_t getCount() {
+        return put - get;
+    }
+};
+
+class Pulse {
+public:
+    enum {
+        PULSE_VOLUME_DECAY, // ddlDnnnn (duty cycle, loop, Disable, n)
+        PULSE_SWEEP,        // epppnsss (enable, period, negate, shift)
+        PULSE_FREQUENCY,    // llllllll (lower 8 of period)
+        PULSE_LENGTH,       // iiiiihhh (length index, upper 3 of period)
+        PULSE_REG_COUNT
+    };
+    enum DutyCycle {
+        CYCLE_12_5   = 0,
+        CYCLE_25     = 1,
+        CYCLE_50     = 2,
+        CYCLE_25_NEG = 3,
+    };
+    Pulse(uint8_t *argRegs) : 
+        regs{argRegs},
+        counter{0},
+        divider{0},
+        resetClockAndDivider{true},
+        time(0.0f) {}
+    Pulse(const Pulse&) = delete;
+    ~Pulse() {}
+
+    // Query functions
+    bool isLoopSet() {
+        return (regs[PULSE_VOLUME_DECAY] & (1 << 5)) != 0;
+    }
+    bool isHalted() {
+        return (regs[PULSE_VOLUME_DECAY] & (1 << 5)) != 0;
+    }
+    bool isDisabled() {
+        return (regs[PULSE_VOLUME_DECAY] & (1 << 4)) != 0;
+    }
+    bool isNonZeroLength() {
+        return lengthCounter != 0;
+    }
+    uint8_t getN() {
+        return (regs[PULSE_VOLUME_DECAY] & 0xf);
+    }
+    uint8_t getLengthIndex() {
+        return (regs[PULSE_LENGTH] >> 3);
+    }
+    uint16_t getTimerPeriod() {
+        return (uint16_t)regs[PULSE_FREQUENCY] | (((uint16_t)regs[PULSE_LENGTH] & 0x7) << 8);
+    }
+    float getToneFrequency() {
+        return cpuClk / (16.0f * (getTimerPeriod() + 1)); 
+    }
+    DutyCycle getDutyCycle() {
+        return (DutyCycle)(regs[PULSE_VOLUME_DECAY] >> 6);
+    }
+
+    // Internal pulse unit functions
+    void dividerClock() {
+        if (counter) {
+            counter--;
+        }
+        else if (isLoopSet()) {
+            counter = 15; 
+        }
+    }
+    void clockEnvelope() {
+        if (resetClockAndDivider) {
+            counter = 15;
+            divider = getN() + 1;
+            resetClockAndDivider = false;
+        } 
+        else {
+            divider--;
+            if (divider == 0) {
+                dividerClock();
+                divider = getN() + 1;
+            }
+        }
+    }
+    void clockLengthAndSweep() {
+        if (!isHalted() and lengthCounter) {
+           lengthCounter--; 
+        }   
+    }
+    void resetLength() {
+        assert(getLengthIndex() < (sizeof(lengthCounterLut) / sizeof(lengthCounterLut[0])));
+        lengthCounter = lengthCounterLut[getLengthIndex()];
+    }
+    void resetSequencer() {
+        time = 0.0f;
+    }
+    void notifyOfLengthWrite() {
+        resetClockAndDivider = true;
+    }
+    uint8_t getVolume() {
+        if (isDisabled()) {
+            return getN();
+        } 
+        else {
+            return counter;
+        }
+    }
+    void generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32_t reqSamples);
+private:
+    uint8_t *regs;
+    // volume counter 
+    uint8_t counter;
+    uint8_t lengthCounter;
+    // divider for volume control
+    uint8_t divider;
+    bool resetClockAndDivider;
+    float time;
+    uint8_t lengthCounterLut[32] = {
+         10, 254, 20,  2,
+         40,   4, 80,  6,
+        160,   8, 60, 10,
+         14,  12, 26, 14,
+         12,  16, 24, 18,
+         48,  20, 96, 22,
+        192,  24, 72, 26,
+         16,  28, 32, 30
+    };
+    // real cpu frequency (ntsc)
+    static constexpr float cpuClk = 1.789773 * 1.0E6;
+};
+
 class Apu {
+public:
+    enum {
+        // pulse wave channel a
+        CHANNEL1_VOLUME_DECAY, // --ldnnnn (loop, disable, n)
+        CHANNEL1_SWEEP,        // epppnsss (enable, period, negate, shift)
+        CHANNEL1_FREQUENCY,    // llllllll (lower 8 of period)
+        CHANNEL1_LENGTH,       // -----hhh (upper 3 of period)
+        
+        // pulse wave channel b
+        CHANNEL2_VOLUME_DECAY,
+        CHANNEL2_SWEEP,
+        CHANNEL2_FREQUENCY,
+        CHANNEL2_LENGTH,
+        
+        // triangle wave channel
+        CHANNEL3_LINEAR_COUNTER,
+        CHANNEL3_UNUSED_A,
+        CHANNEL3_FREQUENCY,
+        CHANNEL3_LENGTH,
+        
+        // white noise channel
+        CHANNEL4_VOLUME_DECAY,
+        CHANNEL4_UNUSED_B,
+        CHANNEL4_FREQUENCY,
+        CHANNEL4_LENGTH,
+        
+        // pcm channel
+        CHANNEL5_PLAY_MODE,
+        CHANNEL5_DELTA_COUNTER_LOAD_REGISTER,
+        CHANNEL5_ADDR_LOAD_REGISTER,
+        CHANNEL5_LENGTH_REGISTER,
+        
+        // this register is pushed to another module
+        SPR_RAM_REG_UNUSED,
+        
+        // apu control register
+        CONTROL_STATUS,
+        
+        // joypad register (not used here)
+        JOYPAD_1,
+        
+        // softclock register
+        SOFTCLOCK,
+        
+        // not a register
+        REG_COUNT,
+    };
+    
+    enum StatusReg {
+        STATUS_CHANNEL1_LENGTH     = 1 << 0,
+        STATUS_CHANNEL2_LENGTH     = 1 << 1,
+        STATUS_CHANNEL3_LENGTH     = 1 << 2,
+        STATUS_CHANNEL4_LENGTH     = 1 << 3,
+        STATUS_CHANNEL5_LENGTH     = 1 << 4,
+        STATUS_FRAME_IRQ_REQUESTED = 1 << 6,
+        STATUS_DMC_IRQ_REQUESTED   = 1 << 7,
+    };
+
+private:
     static const uint32_t cycleDivider = 7457;
+    static const uint32_t fiveStepRate = 192;
+    static const uint32_t fourStepRate = 240;
     
     Nes *nes;
-    Sdl *display;
+    Sdl *audio;
+    
     uint64_t cycle;
     uint32_t step;
+    uint8_t regs[REG_COUNT] = {0};
+    uint32_t sampleRate;
+
+    Pulse pulseA;
+    Pulse pulseB;
+
+    std::vector<uint8_t> pulseAFrame;
+    std::vector<uint8_t> pulseBFrame;
+    std::vector<int16_t> fullFrame;
+
+    RingBuffer<int16_t> rb;
 
 public:
     bool isRequestingFrameIrq() {
@@ -50,11 +286,47 @@ public:
     bool isFrameIntEnabled() {
         return (regs[SOFTCLOCK] & (1u << 6)) == 0;
     }
-    void clockLengthAndSweep() {
+    void generateFrameSamples() {
+        uint32_t rate;
+        uint32_t samples;
+        if (isFourStepFrame()) {
+            rate = fourStepRate;
+        }
+        else {
+            rate = fiveStepRate;
+        }
+        samples = sampleRate / rate;
+        pulseAFrame.resize(samples);     
+        pulseA.generateFrame(pulseAFrame, sampleRate, samples);
         
+        pulseBFrame.resize(samples);     
+        pulseB.generateFrame(pulseBFrame, sampleRate, samples);
+
+        fullFrame.resize(samples);
+        for (uint32_t i = 0; i < samples; i++) {
+            float sample = (95.88f  / ((8128.0f  / (float(pulseAFrame[i] + pulseBFrame[i]))) + 100.0f));
+            int16_t truncSamples = (int16_t)(sample * (1 << 14));
+            //fullFrame[i] = (int16_t)(((int32_t)pulseAFrame[i] << 8) + (1 << 15));
+            fullFrame[i] = truncSamples;
+        }
+        /*
+        for (int i = 0; i < 20; i++) {
+            printf("%d ", fullFrame[i]);
+        }
+        printf("\n");
+        */
+        if (rb.hasEmptySpace(samples)) {
+            rb.putData(&fullFrame[0], samples);
+        }
+    }
+    void clockLengthAndSweep() {
+        pulseA.clockLengthAndSweep();
+        pulseB.clockLengthAndSweep();
     }
     void clockEnvAndTriangle() {
-        
+        pulseA.clockEnvelope(); 
+        pulseB.clockEnvelope();
+        generateFrameSamples();
     }
     void resetFrameCounter() {
         cycle = 0;
@@ -98,85 +370,38 @@ public:
             tick();
         }
     }
-    
-    enum {
-        // pulse wave channel a
-        CHANNEL1_VOLUME_DECAY,
-        CHANNEL1_SWEEP,
-        CHANNEL1_FREQUENCY,
-        CHANNEL1_LENGTH,
-        
-        // pulse wave channel b
-        CHANNEL2_VOLUME_DECAY,
-        CHANNEL2_SWEEP,
-        CHANNEL2_FREQUENCY,
-        CHANNEL2_LENGTH,
-        
-        // triangle wave channel
-        CHANNEL3_LINEAR_COUNTER,
-        CHANNEL3_UNUSED_A,
-        CHANNEL3_FREQUENCY,
-        CHANNEL3_LENGTH,
-        
-        // white noise channel
-        CHANNEL4_VOLUME_DECAY,
-        CHANNEL4_UNUSED_B,
-        CHANNEL4_FREQUENCY,
-        CHANNEL4_LENGTH,
-        
-        // pcm channel
-        CHANNEL5_PLAY_MODE,
-        CHANNEL5_DELTA_COUNTER_LOAD_REGISTER,
-        CHANNEL5_ADDR_LOAD_REGISTER,
-        CHANNEL5_LENGTH_REGISTER,
-        
-        // this register is pushed to another module
-        SPR_RAM_REG_UNUSED,
-        
-        // apu control register
-        CONTROL_STATUS,
-        
-        // joypad register (not used here)
-        JOYPAD_1,
-        
-        // softclock register
-        SOFTCLOCK,
-        
-        // not a register
-        REG_COUNT,
-    };
-    
-    enum StatusReg {
-        STATUS_CHANNEL1_ENABLED    = 1 << 0,
-        STATUS_CHANNEL2_ENABLED    = 1 << 1,
-        STATUS_CHANNEL3_ENABLED    = 1 << 2,
-        STATUS_CHANNEL4_ENABLED    = 1 << 3,
-        STATUS_CHANNEL5_ENABLED    = 1 << 4,
-        STATUS_FRAME_IRQ_REQUESTED = 1 << 6,
-        STATUS_DMC_IRQ_REQUESTED   = 1 << 7,
-    };
-    
-    uint8_t regs[REG_COUNT] = {0};
     void writeReg(uint32_t reg, uint8_t val) {
+        regs[reg] = val;
         if (reg == SOFTCLOCK) {
             resetFrameCounter();
         }
         else if (reg == CONTROL_STATUS) {
             clearRequestDmcIrq();
         }
-        regs[reg] = val;
+        else if (reg == CHANNEL1_LENGTH) {
+            pulseA.resetLength();
+            pulseA.resetSequencer();
+            printf("reset sequenceer\n");
+        }
+        else if (reg == CHANNEL2_LENGTH) {
+            pulseB.resetLength();
+            pulseB.resetSequencer();
+        } 
     }
     uint8_t readReg(uint32_t reg) {
+        uint8_t result = regs[reg];
         if (reg == CONTROL_STATUS) {
             clearRequestFrameIrq();
+            result = result & (STATUS_FRAME_IRQ_REQUESTED | STATUS_DMC_IRQ_REQUESTED);
+            result |= pulseA.isNonZeroLength() ? STATUS_CHANNEL1_LENGTH : 0;
+            result |= pulseB.isNonZeroLength() ? STATUS_CHANNEL2_LENGTH : 0;
         }
-        return regs[reg];
+        return result;
     }
     
-    Apu(Nes *parent, Sdl *disp) : nes{parent}, display{disp} {}
+    Apu(Nes *parent, Sdl *audio);
     Apu() = delete;
     Apu(const Apu&) = delete;
-    ~Apu() {}
-    
+    ~Apu();
 };
 #endif
