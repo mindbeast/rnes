@@ -8,6 +8,108 @@
 
 #include "sdl.h"
 
+void callback(void *userData, Uint8 *stream, int len)
+{
+    Sdl *sdl = (Sdl*)userData;
+    sdl->callbackWrapper(stream, len);
+}
+
+void Sdl::callbackWrapper(uint8_t *stream, int len)
+{
+    if (audioCallback) {
+        audioCallback(callbackData, stream, len);
+    }
+}
+
+void Sdl::registerAudioCallback(Callback *cb, void *data)
+{
+    callbackData = data;
+    audioCallback = cb; 
+    SDL_PauseAudio(0);
+}
+
+void Sdl::unregisterAudioCallback()
+{
+    SDL_PauseAudio(1);
+    audioCallback = nullptr; 
+    callbackData = nullptr;  
+}
+
+uint32_t Sdl::getSampleRate()
+{
+    return audioFreq;
+}
+
+uint32_t Sdl::getChunkSize()
+{
+    return audioBufferSize;
+}
+
+int Sdl::initDisplay()
+{
+    int flags;
+    const SDL_VideoInfo *info;
+    info = SDL_GetVideoInfo();
+    if (!info) {
+        return -1;
+    }
+    
+    flags = SDL_HWSURFACE | SDL_DOUBLEBUF | SDL_ASYNCBLIT;
+    display = SDL_SetVideoMode(displayWidth, displayHeight, 32, flags);
+    if (!display) {
+        return -1;
+    }
+    
+    SDL_WM_SetCaption("rnes", "rnes");
+    return 0;
+}
+
+int Sdl::initAudio()
+{
+    SDL_AudioSpec desired, obtained;
+
+    desired.freq = 44100;
+    desired.format = AUDIO_S16SYS;
+    desired.channels = 1;
+    desired.samples = 2048;
+    desired.callback = callback;
+    desired.userdata = this;
+
+    if (SDL_OpenAudio(&desired, &obtained) < 0) {
+        printf("Fail\n");
+        return 1;
+    }
+
+    audioFreq = obtained.freq;
+    audioBufferSize = obtained.samples;
+    
+    return 0;
+}
+
+Sdl::Sdl()
+{
+    int ret;
+    
+    ret = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+    if (ret < 0) {
+        return;
+    }
+
+    if (initDisplay() < 0) {
+        return;
+    }
+
+    if (initAudio() < 0) {
+        return;
+    }
+}
+
+Sdl::~Sdl()
+{
+    SDL_FreeSurface(display);
+    SDL_CloseAudio();
+}
+
 void Sdl::parseInput()
 {
     SDL_Event event;

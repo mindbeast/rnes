@@ -138,7 +138,6 @@ uint8_t Nes::vidMemRead(uint16_t addr)
 void Nes::run()
 {
     uint32_t inputCycles = 1 << 20;
-    sdl.init();
     cpu.reset();
     while (1) {
         uint32_t cpuCycles;

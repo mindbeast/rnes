@@ -271,7 +271,7 @@ void Ppu::render(uint32_t scanline)
                 }
             }
             renderedSprites++;
-            if (renderedSprites >= maxRenderedSpritePerScanline) {
+            if (renderedSprites > maxRenderedSpritePerScanline) {
                 setLostSprites();
                 break;
             }
