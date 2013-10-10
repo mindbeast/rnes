@@ -54,6 +54,8 @@ template <typename T> struct RingBuffer {
     }
 };
 
+class Apu;
+
 class Pulse {
 public:
     enum {
@@ -69,9 +71,10 @@ public:
         CYCLE_50     = 2,
         CYCLE_25_NEG = 3,
     };
-    Pulse(uint8_t *argRegs, bool primaryPulse) : 
+    Pulse(uint8_t *argRegs, Apu *parent, bool primaryPulse) : 
         regs{argRegs},
         primary{primaryPulse},
+        apu{parent},
         envelope{0},
         envelopeDivider{0},
         resetEnvelopeAndDivider{true},
@@ -197,6 +200,9 @@ public:
         assert(getLengthIndex() < (sizeof(lengthCounterLut) / sizeof(lengthCounterLut[0])));
         lengthCounter = lengthCounterLut[getLengthIndex()];
     }
+    void zeroLength() {
+        lengthCounter = 0;
+    } 
     void resetSequencer() {
         time = 0.0f;
     }
@@ -218,6 +224,7 @@ public:
 private:
     uint8_t *regs;
     bool primary;
+    Apu *apu;
 
     // length logic
     uint8_t lengthCounter;
@@ -446,6 +453,13 @@ public:
         }
         else if (reg == CONTROL_STATUS) {
             clearRequestDmcIrq();
+            // xx what to do with the upper bits here
+            if (~val & STATUS_CHANNEL1_LENGTH) {
+                pulseA.zeroLength();
+            }
+            if (~val & STATUS_CHANNEL2_LENGTH) {
+                pulseB.zeroLength();
+            }
         }
         else if (reg == CHANNEL1_LENGTH) {
             pulseA.resetLength();
