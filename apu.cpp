@@ -14,21 +14,14 @@ void apuSdlCallback(void *data, uint8_t *stream, int len)
     RingBuffer<int16_t> *rb = (RingBuffer<int16_t>*)data;
     uint32_t items = len / sizeof(int16_t); 
     int16_t *outData = (int16_t*)stream;
+    uint32_t rbCount = rb->getCount(); 
     
-    if (rb->hasData(items)) {
-
+    if (rbCount >= items) {
         rb->getData(outData, items);
-        /*
-        for (int i = 0; i < items; i++) {
-            printf("%d ", (int)outData[i]);
-        }
-        printf("\n");
-        */
     }
     else {
-        
-        memset(outData, 0, sizeof(int16_t) * items);
-        printf("not here %d\n", rb->getCount());
+        rb->getData(outData, rbCount);
+        memset(&outData[rbCount], 0, sizeof(int16_t) * (items - rbCount));
     }
 }
 
@@ -38,8 +31,8 @@ Apu::Apu(Nes *parent, Sdl *audio) :
     cycle{0},
     step{0},
     regs{0},
-    pulseA{&regs[CHANNEL1_VOLUME_DECAY]},
-    pulseB{&regs[CHANNEL2_VOLUME_DECAY]},
+    pulseA{&regs[CHANNEL1_VOLUME_DECAY],true},
+    pulseB{&regs[CHANNEL2_VOLUME_DECAY],false},
     rb{1 << 15}
 {
     sampleRate = audio->getSampleRate(); 
@@ -50,20 +43,44 @@ Apu::~Apu()
 {
     audio->unregisterAudioCallback();
 }
+
+static void fillSilent(std::vector<uint8_t>& ref, uint32_t reqSamples)
+{
+    for (uint32_t i = 0; i < reqSamples; i++) {
+        ref[i] = 0;
+    }
+}
  
 void Pulse::generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32_t reqSamples)
 {
-    float toneFrequency = getToneFrequency();
-    //float toneFrequency = 400.0f;
-
-    float toneWaveLength = 1.0f / toneFrequency;
-    float timePerSample = 1.0f / float(sampleRate);
-    uint16_t volume = getVolume();
-    DutyCycle cycle = getDutyCycle();
-    float t = time;
+    const float toneFrequency = getToneFrequency();
+    const float toneWaveLength = 1.0f / toneFrequency;
+    const float timePerSample = 1.0f / float(sampleRate);
+    const uint16_t volume = getVolume();
     float threshhold = 0.0f;
+    const DutyCycle cycle = getDutyCycle();
+    float currentTime = time;
+    time += timePerSample * reqSamples;
+
+    // length has run out, channel is silenced
+    if (!isNonZeroLength()) {
+        fillSilent(ref, reqSamples);
+        return;
+    }
+    // channel is silenced when period is < 8
+    const uint16_t timerPeriod = getTimerPeriod();
+    if (timerPeriod < 8) {
+        fillSilent(ref, reqSamples);
+        return;
+    }
+    // channel silenced when target is above 0x7ff
+    const uint16_t targetPeriod = computeSweepTarget();
+    if (targetPeriod > 0x7ff) {
+        fillSilent(ref, reqSamples);
+        return;
+    }
     
-    assert(ref.size() >= reqSamples);
+    assert(ref.size() >= reqSamples); 
     switch (cycle) {
         case CYCLE_12_5:   threshhold = 0.125f; break;
         case CYCLE_25:     threshhold = 0.25f;  break;
@@ -71,20 +88,12 @@ void Pulse::generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32
         case CYCLE_25_NEG: threshhold = 0.75f;  break;
         default: assert(0); break;
     }
+
     for (uint32_t i = 0; i < reqSamples; i++) {
-        float offsetInWavelengths = t / toneWaveLength; 
+        float offsetInWavelengths = currentTime / toneWaveLength; 
         float offsetInWave = offsetInWavelengths - float(int(offsetInWavelengths));
         uint16_t sampleVolume = (offsetInWave <= threshhold) ? volume : 0;
-        sampleVolume = lengthCounter != 0 ? sampleVolume : 0;
         ref[i] = sampleVolume; 
-        t += timePerSample;
+        currentTime += timePerSample;
     }
-    //printf("obj: %p freq: %f samples: %d vol: %d lengthCounter: %d\n", this, toneFrequency, reqSamples, volume, lengthCounter);
-   // printf("%d\n", cycle);
-    //for (int i = 0; i < reqSamples; i++) {
-    //    printf("%d ", (int)ref[i]);
-    //}
-    //printf("\n");
-   
-    time += timePerSample * reqSamples;
 }
