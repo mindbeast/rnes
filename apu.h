@@ -69,17 +69,20 @@ public:
         CYCLE_50     = 2,
         CYCLE_25_NEG = 3,
     };
-    Pulse(uint8_t *argRegs) : 
+    Pulse(uint8_t *argRegs, bool primaryPulse) : 
         regs{argRegs},
-        counter{0},
-        divider{0},
-        resetClockAndDivider{true},
+        primary{primaryPulse},
+        envelope{0},
+        envelopeDivider{0},
+        resetEnvelopeAndDivider{true},
+        resetSweepDivider{true},
+        sweepDivider{0},
         time(0.0f) {}
     Pulse(const Pulse&) = delete;
     ~Pulse() {}
 
     // Query functions
-    bool isLoopSet() {
+    bool isEnvelopeLoopSet() {
         return (regs[PULSE_VOLUME_DECAY] & (1 << 5)) != 0;
     }
     bool isHalted() {
@@ -91,14 +94,33 @@ public:
     bool isNonZeroLength() {
         return lengthCounter != 0;
     }
-    uint8_t getN() {
+    uint8_t getEnvelopeN() {
         return (regs[PULSE_VOLUME_DECAY] & 0xf);
+    }
+    bool isSweepEnabled() {
+        return (regs[PULSE_SWEEP] & (1 << 7)) != 0;
+    }
+    bool isSweepNegative() {
+        return (regs[PULSE_SWEEP] & (1 << 3)) != 0;
+    }
+    bool isFirstPulse() {
+        return primary;
+    }
+    uint8_t getSweepP() {
+        return (regs[PULSE_SWEEP] >> 4) & 0x7;
+    }
+    uint8_t getSweepShift() {
+        return (regs[PULSE_SWEEP] & 0x7);
     }
     uint8_t getLengthIndex() {
         return (regs[PULSE_LENGTH] >> 3);
     }
     uint16_t getTimerPeriod() {
         return (uint16_t)regs[PULSE_FREQUENCY] | (((uint16_t)regs[PULSE_LENGTH] & 0x7) << 8);
+    }
+    void setTimerPeriod(uint16_t period) {
+        regs[PULSE_FREQUENCY] = (uint8_t)period;
+        regs[PULSE_LENGTH] = (regs[PULSE_LENGTH] & 0xf8) | ((uint8_t)(period >> 8) & 0x7);
     }
     float getToneFrequency() {
         return cpuClk / (16.0f * (getTimerPeriod() + 1)); 
@@ -108,32 +130,68 @@ public:
     }
 
     // Internal pulse unit functions
-    void dividerClock() {
-        if (counter) {
-            counter--;
+    void envelopeDividerClock() {
+        if (envelope) {
+            envelope--;
         }
-        else if (isLoopSet()) {
-            counter = 15; 
+        else if (isEnvelopeLoopSet()) {
+            envelope = 15; 
         }
     }
     void clockEnvelope() {
-        if (resetClockAndDivider) {
-            counter = 15;
-            divider = getN() + 1;
-            resetClockAndDivider = false;
+        if (resetEnvelopeAndDivider) {
+            envelope = 15;
+            envelopeDivider = getEnvelopeN() + 1;
+            resetEnvelopeAndDivider = false;
         } 
         else {
-            divider--;
-            if (divider == 0) {
-                dividerClock();
-                divider = getN() + 1;
+            if (envelopeDivider) {
+                envelopeDivider--;
+            }
+            else {
+                envelopeDividerClock();
+                envelopeDivider = getEnvelopeN() + 1;
             }
         }
     }
+    uint16_t computeSweepTarget() {
+        uint16_t period = getTimerPeriod(); 
+        uint16_t shiftedPeriod = period >> getSweepShift();
+        if (isSweepNegative()) {
+            shiftedPeriod = isFirstPulse() ? -shiftedPeriod : -shiftedPeriod + 1;
+        }
+        uint16_t targetPeriod = period + shiftedPeriod;
+        return targetPeriod;
+    }
+    void sweepPeriod() {
+        uint16_t targetPeriod = computeSweepTarget();
+        uint16_t period = getTimerPeriod(); 
+        if (targetPeriod > 0x7ff or period < 8) {
+            return;
+        }
+        setTimerPeriod(targetPeriod); 
+    }
     void clockLengthAndSweep() {
+        // Length
         if (!isHalted() and lengthCounter) {
            lengthCounter--; 
         }   
+        // Sweep
+        if (resetSweepDivider) {
+            sweepDivider = getSweepP() + 1;
+            resetSweepDivider = false;
+        }
+        else {
+            if (sweepDivider) {
+                sweepDivider--; 
+            } 
+            else {
+                if (isSweepEnabled()) {
+                    sweepDivider = getSweepP() + 1;
+                    sweepPeriod();
+                }
+            }
+        }
     }
     void resetLength() {
         assert(getLengthIndex() < (sizeof(lengthCounterLut) / sizeof(lengthCounterLut[0])));
@@ -142,26 +200,37 @@ public:
     void resetSequencer() {
         time = 0.0f;
     }
-    void notifyOfLengthWrite() {
-        resetClockAndDivider = true;
+    void resetEnvelope() {
+        resetEnvelopeAndDivider = true;
+    }
+    void resetSweep() {
+        resetSweepDivider = true;
     }
     uint8_t getVolume() {
         if (isDisabled()) {
-            return getN();
+            return getEnvelopeN();
         } 
         else {
-            return counter;
+            return envelope;
         }
     }
     void generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32_t reqSamples);
 private:
     uint8_t *regs;
-    // volume counter 
-    uint8_t counter;
+    bool primary;
+
+    // length logic
     uint8_t lengthCounter;
-    // divider for volume control
-    uint8_t divider;
-    bool resetClockAndDivider;
+    
+    // envelope logic
+    uint8_t envelope;
+    uint8_t envelopeDivider;
+    bool resetEnvelopeAndDivider;
+
+    // sweep logic
+    bool resetSweepDivider;
+    uint8_t sweepDivider;
+    
     float time;
     uint8_t lengthCounterLut[32] = {
          10, 254, 20,  2,
@@ -381,11 +450,12 @@ public:
         else if (reg == CHANNEL1_LENGTH) {
             pulseA.resetLength();
             pulseA.resetSequencer();
-            printf("reset sequenceer\n");
+            pulseA.resetEnvelope();
         }
         else if (reg == CHANNEL2_LENGTH) {
             pulseB.resetLength();
             pulseB.resetSequencer();
+            pulseB.resetEnvelope();
         } 
     }
     uint8_t readReg(uint32_t reg) {
