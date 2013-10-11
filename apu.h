@@ -253,6 +253,29 @@ private:
     static constexpr float cpuClk = 1.789773 * 1.0E6;
 };
 
+
+class Triangle {
+    uint8_t *regs;
+    Apu *apu;
+public:   
+    enum {
+        TRIANGLE_LINEAR_COUNTER, // crrrrrrr (control flag, reload)
+        TRIANGLE_UNUSED,         // 
+        TRIANGLE_FREQUENCY,      // llllllll (lower 8 of period)
+        TRIANGLE_LENGTH,         // iiiiihhh (length index, upper 3 of period)
+        TRIANGLE_REG_COUNT
+    };
+    Triangle(uint8_t *argRegs, Apu *parent) : 
+        regs{argRegs},
+        apu{parent} 
+    {}
+    Triangle(const Pulse&) = delete;
+    ~Triangle() {}
+    void generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32_t reqSamples) {}
+    void clockLength() {}
+    void clockLinearCounter() {}
+};
+
 class Apu {
 public:
     enum {
@@ -327,6 +350,7 @@ private:
 
     Pulse pulseA;
     Pulse pulseB;
+    Triangle triangle;
 
     std::vector<uint8_t> pulseAFrame;
     std::vector<uint8_t> pulseBFrame;
@@ -398,10 +422,12 @@ public:
     void clockLengthAndSweep() {
         pulseA.clockLengthAndSweep();
         pulseB.clockLengthAndSweep();
+        triangle.clockLength();
     }
     void clockEnvAndTriangle() {
         pulseA.clockEnvelope(); 
         pulseB.clockEnvelope();
+        triangle.clockLinearCounter();
         generateFrameSamples();
     }
     void resetFrameCounter() {
