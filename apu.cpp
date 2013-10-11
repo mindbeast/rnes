@@ -33,6 +33,7 @@ Apu::Apu(Nes *parent, Sdl *audio) :
     regs{0},
     pulseA{&regs[CHANNEL1_VOLUME_DECAY], this, true},
     pulseB{&regs[CHANNEL2_VOLUME_DECAY], this, false},
+    triangle{&regs[CHANNEL3_LINEAR_COUNTER], this},
     rb{1 << 15}
 {
     sampleRate = audio->getSampleRate(); 
