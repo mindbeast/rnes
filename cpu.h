@@ -20,6 +20,13 @@
 
 class Nes;
 
+
+struct OpcodeHash {
+    size_t operator()(uint8_t opcode) const {
+        return opcode;
+    }
+};
+
 class Cpu {
 private:
     // system object
@@ -822,7 +829,7 @@ private:
         (this->*fx)(finalAddr);
     }
     
-    std::unordered_map<uint8_t, Cpu::Instruction> instTable = {
+    std::unordered_map<uint8_t, Cpu::Instruction, OpcodeHash> instTable = {{
         {0x00, {"BRK", 0x00, 7, &Cpu::impliedFormat<&Cpu::brkInst>}},
         {0x01, {"ORA", 0x01, 6, &Cpu::indexedIndirectFormat<&Cpu::oraInst>}},
         /*{0x04, {"DOP", 0x04, 0, &Cpu::zeroPageFormat<&Cpu::nopInst>}},*/
@@ -978,7 +985,7 @@ private:
         {0xf9, {"SBC", 0xf9, 4, &Cpu::absoluteYFormat<&Cpu::sbcInst>}},
         {0xfd, {"SBC", 0xfd, 4, &Cpu::absoluteXFormat<&Cpu::sbcInst>}},
         {0xfe, {"INC", 0xfe, 7, &Cpu::absoluteXFormat<&Cpu::incInst>}}
-    };
+    }, 256, OpcodeHash()};
     
 public:
     uint32_t runInst() {

@@ -71,7 +71,7 @@ int Sdl::initAudio()
     desired.freq = 44100;
     desired.format = AUDIO_S16SYS;
     desired.channels = 1;
-    desired.samples = 2048;
+    desired.samples = 1024;
     desired.callback = callback;
     desired.userdata = this;
 

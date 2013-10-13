@@ -20,6 +20,23 @@ class Nes;
 static bool isPow2(uint32_t i) {
     return ((i - 1) & i) == 0;
 }
+static const
+uint8_t lengthCounterLut[] = {
+     10, 254,  20,   2,
+     40,   4,  80,   6,
+    160,   8,  60,  10,
+     14,  12,  26,  14,
+     12,  16,  24,  18,
+     48,  20,  96,  22,
+    192,  24,  72,  26,
+     16,  28,  32,  30
+};
+
+static uint16_t lengthIndexToValue(uint32_t index)
+{
+    assert(index < sizeof(lengthCounterLut) / sizeof(lengthCounterLut[0]));
+    return lengthCounterLut[index];
+}
 
 template <typename T> struct RingBuffer {
     std::vector<T> buffer;
@@ -85,51 +102,51 @@ public:
     ~Pulse() {}
 
     // Query functions
-    bool isEnvelopeLoopSet() {
+    bool isEnvelopeLoopSet() const {
         return (regs[PULSE_VOLUME_DECAY] & (1 << 5)) != 0;
     }
-    bool isHalted() {
+    bool isHalted() const {
         return (regs[PULSE_VOLUME_DECAY] & (1 << 5)) != 0;
     }
-    bool isDisabled() {
+    bool isDisabled() const {
         return (regs[PULSE_VOLUME_DECAY] & (1 << 4)) != 0;
     }
-    bool isNonZeroLength() {
+    bool isNonZeroLength() const {
         return lengthCounter != 0;
     }
-    uint8_t getEnvelopeN() {
+    uint8_t getEnvelopeN() const {
         return (regs[PULSE_VOLUME_DECAY] & 0xf);
     }
-    bool isSweepEnabled() {
+    bool isSweepEnabled() const {
         return (regs[PULSE_SWEEP] & (1 << 7)) != 0;
     }
-    bool isSweepNegative() {
+    bool isSweepNegative() const {
         return (regs[PULSE_SWEEP] & (1 << 3)) != 0;
     }
-    bool isFirstPulse() {
+    bool isFirstPulse() const {
         return primary;
     }
-    uint8_t getSweepP() {
+    uint8_t getSweepP() const {
         return (regs[PULSE_SWEEP] >> 4) & 0x7;
     }
-    uint8_t getSweepShift() {
+    uint8_t getSweepShift() const {
         return (regs[PULSE_SWEEP] & 0x7);
     }
-    uint8_t getLengthIndex() {
+    uint8_t getLengthIndex() const {
         return (regs[PULSE_LENGTH] >> 3);
     }
-    uint16_t getTimerPeriod() {
+    uint16_t getTimerPeriod() const {
         return (uint16_t)regs[PULSE_FREQUENCY] | (((uint16_t)regs[PULSE_LENGTH] & 0x7) << 8);
+    }
+    float getToneFrequency() const {
+        return cpuClk / (16.0f * (getTimerPeriod() + 1)); 
+    }
+    DutyCycle getDutyCycle() const {
+        return (DutyCycle)(regs[PULSE_VOLUME_DECAY] >> 6);
     }
     void setTimerPeriod(uint16_t period) {
         regs[PULSE_FREQUENCY] = (uint8_t)period;
         regs[PULSE_LENGTH] = (regs[PULSE_LENGTH] & 0xf8) | ((uint8_t)(period >> 8) & 0x7);
-    }
-    float getToneFrequency() {
-        return cpuClk / (16.0f * (getTimerPeriod() + 1)); 
-    }
-    DutyCycle getDutyCycle() {
-        return (DutyCycle)(regs[PULSE_VOLUME_DECAY] >> 6);
     }
 
     // Internal pulse unit functions
@@ -197,8 +214,7 @@ public:
         }
     }
     void resetLength() {
-        assert(getLengthIndex() < (sizeof(lengthCounterLut) / sizeof(lengthCounterLut[0])));
-        lengthCounter = lengthCounterLut[getLengthIndex()];
+        lengthCounter = lengthIndexToValue(getLengthIndex());
     }
     void zeroLength() {
         lengthCounter = 0;
@@ -239,25 +255,12 @@ private:
     uint8_t sweepDivider;
     
     float time;
-    uint8_t lengthCounterLut[32] = {
-         10, 254, 20,  2,
-         40,   4, 80,  6,
-        160,   8, 60, 10,
-         14,  12, 26, 14,
-         12,  16, 24, 18,
-         48,  20, 96, 22,
-        192,  24, 72, 26,
-         16,  28, 32, 30
-    };
     // real cpu frequency (ntsc)
     static constexpr float cpuClk = 1.789773 * 1.0E6;
 };
 
 
 class Triangle {
-    uint8_t *regs;
-    Apu *apu;
-public:   
     enum {
         TRIANGLE_LINEAR_COUNTER, // crrrrrrr (control flag, reload)
         TRIANGLE_UNUSED,         // 
@@ -265,15 +268,84 @@ public:
         TRIANGLE_LENGTH,         // iiiiihhh (length index, upper 3 of period)
         TRIANGLE_REG_COUNT
     };
+    uint8_t *regs;
+    Apu *apu;
+    
+    // length logic
+    uint8_t lengthCounter;
+    
+    // sequencer logic 
+    float time;
+    static constexpr float cpuClk = 1.789773 * 1.0E6;
+
+    // linear counter logic
+    bool linearCounterHalt;
+    uint8_t linearCounter;
+
+    bool isHalted() const {
+        return (regs[TRIANGLE_LINEAR_COUNTER] & (1 << 7)) != 0;
+    }
+    bool isNonZeroLinearCounter() const {
+        return linearCounter != 0;
+    }
+    uint8_t getLengthIndex() const {
+        return (regs[TRIANGLE_LENGTH] >> 3);
+    }
+    uint16_t getTimerPeriod() const {
+        return (uint16_t)regs[TRIANGLE_FREQUENCY] | (((uint16_t)regs[TRIANGLE_LENGTH] & 0x7) << 8);
+    }
+    float getToneFrequency() const {
+        return cpuClk / (32.0f * (getTimerPeriod() + 1)); 
+    }
+    uint8_t getLinearCounterReload() const {
+        return (regs[TRIANGLE_LINEAR_COUNTER] & ~(1 << 7));
+    }
+    bool getControlFlag() const {
+        return (regs[TRIANGLE_LINEAR_COUNTER] & (1 << 7)) != 0;
+    }
+public:   
+    bool isNonZeroLength() const {
+        return lengthCounter != 0;
+    }
+    void resetLength() {
+        lengthCounter = lengthIndexToValue(getLengthIndex());
+    }
+    void zeroLength() {
+        lengthCounter = 0;
+    } 
+    void setHaltFlag() {
+        linearCounterHalt = true;
+    }
     Triangle(uint8_t *argRegs, Apu *parent) : 
         regs{argRegs},
-        apu{parent} 
+        apu{parent},
+        lengthCounter{0},
+        time{0.0f},
+        linearCounterHalt{false}
     {}
     Triangle(const Pulse&) = delete;
     ~Triangle() {}
-    void generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32_t reqSamples) {}
-    void clockLength() {}
-    void clockLinearCounter() {}
+    void clockLength() {
+        // Length
+        if (!isHalted() and lengthCounter) {
+           lengthCounter--; 
+        }   
+    }
+    void clockLinearCounter() {
+        if (linearCounterHalt) {
+            linearCounter = getLinearCounterReload();
+        }
+        else if (linearCounter) {
+            linearCounter--;
+        }
+        if (!getControlFlag()) {
+            linearCounterHalt = false; 
+        } 
+    }
+    void resetSequencer() {
+    //    time = 0.0f; 
+    }
+    void generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32_t reqSamples);
 };
 
 class Apu {
@@ -347,6 +419,8 @@ private:
     uint32_t step;
     uint8_t regs[REG_COUNT] = {0};
     uint32_t sampleRate;
+    uint64_t fourFrameCount;
+    uint64_t fiveFrameCount;
 
     Pulse pulseA;
     Pulse pulseB;
@@ -354,6 +428,7 @@ private:
 
     std::vector<uint8_t> pulseAFrame;
     std::vector<uint8_t> pulseBFrame;
+    std::vector<uint8_t> triangleFrame;
     std::vector<int16_t> fullFrame;
 
     RingBuffer<int16_t> rb;
@@ -387,34 +462,39 @@ public:
         return (regs[SOFTCLOCK] & (1u << 6)) == 0;
     }
     void generateFrameSamples() {
-        uint32_t rate;
-        uint32_t samples;
-        if (isFourStepFrame()) {
-            rate = fourStepRate;
+        const bool isFourStep = isFourStepFrame();
+        uint32_t frameRate;
+        if (isFourStep) {
+            frameRate = fourStepRate;
         }
         else {
-            rate = fiveStepRate;
+            frameRate = fiveStepRate;
         }
-        samples = sampleRate / rate;
+        
+        uint32_t samples = sampleRate / frameRate;
+        const uint32_t extraSamples = sampleRate - samples * frameRate;
+        uint64_t &frameCount = isFourStep ? fourFrameCount : fiveFrameCount;
+        if ((frameCount % frameRate) < extraSamples) {
+            samples += 1;
+        }
+        frameCount++;
+
         pulseAFrame.resize(samples);     
         pulseA.generateFrame(pulseAFrame, sampleRate, samples);
         
         pulseBFrame.resize(samples);     
         pulseB.generateFrame(pulseBFrame, sampleRate, samples);
 
+        triangleFrame.resize(samples);
+        triangle.generateFrame(triangleFrame, sampleRate, samples);
+
         fullFrame.resize(samples);
         for (uint32_t i = 0; i < samples; i++) {
-            float sample = (95.88f  / ((8128.0f  / (float(pulseAFrame[i] + pulseBFrame[i]))) + 100.0f));
+            float sample = 95.88f  / ((8128.0f  / (float(pulseAFrame[i] + pulseBFrame[i]))) + 100.0f);
+            sample += 159.79f / (100.0f + (1.0f / ((float(triangleFrame[i]) / 8227.0f))));
             int16_t truncSamples = (int16_t)(sample * (1 << 14));
-            //fullFrame[i] = (int16_t)(((int32_t)pulseAFrame[i] << 8) + (1 << 15));
             fullFrame[i] = truncSamples;
         }
-        /*
-        for (int i = 0; i < 20; i++) {
-            printf("%d ", fullFrame[i]);
-        }
-        printf("\n");
-        */
         if (rb.hasEmptySpace(samples)) {
             rb.putData(&fullFrame[0], samples);
         }
@@ -486,6 +566,9 @@ public:
             if (~val & STATUS_CHANNEL2_LENGTH) {
                 pulseB.zeroLength();
             }
+            if (~val & STATUS_CHANNEL3_LENGTH) {
+                triangle.zeroLength();
+            }
         }
         else if (reg == CHANNEL1_LENGTH) {
             pulseA.resetLength();
@@ -497,6 +580,11 @@ public:
             pulseB.resetSequencer();
             pulseB.resetEnvelope();
         } 
+        else if (reg == CHANNEL3_LENGTH) {
+            triangle.resetLength();
+            triangle.resetSequencer();
+            triangle.setHaltFlag();
+        }
     }
     uint8_t readReg(uint32_t reg) {
         uint8_t result = regs[reg];
@@ -505,6 +593,7 @@ public:
             result = result & (STATUS_FRAME_IRQ_REQUESTED | STATUS_DMC_IRQ_REQUESTED);
             result |= pulseA.isNonZeroLength() ? STATUS_CHANNEL1_LENGTH : 0;
             result |= pulseB.isNonZeroLength() ? STATUS_CHANNEL2_LENGTH : 0;
+            result |= triangle.isNonZeroLength() ? STATUS_CHANNEL3_LENGTH : 0;
         }
         return result;
     }
