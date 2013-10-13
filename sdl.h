@@ -28,7 +28,7 @@ public:
 
 private:
     SDL_Surface *display = nullptr;
-    static const int dispMultiple = 4;
+    static const int dispMultiple = 2;
     static const int renderWidth = 256;
     static const int renderHeight = 240;
     static const int displayHeight = dispMultiple * renderHeight;
@@ -54,15 +54,16 @@ public:
     void postRender() {
         SDL_UnlockSurface(display);
     }
-    void setPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b)
+    inline void setPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b)
     {
         assert(SDL_MUSTLOCK(display));
         assert(display->format->BytesPerPixel == 4);
         uint32_t color = SDL_MapRGB(display->format, r, g, b);
+        const uint32_t pitch = display->pitch / 4;
+        uint32_t * const base = (uint32_t*)display->pixels + x * dispMultiple + y * dispMultiple * pitch;
         for (int i = 0; i < dispMultiple; i++) {
             for (int j = 0; j < dispMultiple; j++) {
-                uint32_t *ptr;
-                ptr = (uint32_t*)display->pixels + x * dispMultiple + j + (y * dispMultiple + i) * (display->pitch / 4);
+                uint32_t *ptr = base + j + i * pitch;
                 *ptr = color;
             }
         }
