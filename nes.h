@@ -85,7 +85,12 @@ class Nes {
     static const uint16_t nameTable2 = 0x2800;
     static const uint16_t nameTable3 = 0x2c00;
     static const uint16_t nameTableSize = 0x400;
-
+    
+    static const uint16_t ppuRegBase = 0x2000;
+    static const uint16_t ppuRegEnd = ppuRegBase + Ppu::REG_COUNT - 1;
+    
+    static const uint16_t apuRegBase = 0x4000;
+    static const uint16_t apuRegEnd = apuRegBase + Apu::REG_COUNT - 1;
     
     uint8_t vidMemory[videoMemorySize] = {0};
     uint8_t cpuMemory[cpuMemorySize] = {0};
@@ -111,12 +116,6 @@ class Nes {
     
     uint32_t spriteDmaExecute();
     void spriteDmaSetup(uint8_t val);
-    
-    static const uint16_t ppuRegBase = 0x2000;
-    static const uint16_t ppuRegEnd = ppuRegBase + Ppu::REG_COUNT - 1;
-    
-    static const uint16_t apuRegBase = 0x4000;
-    static const uint16_t apuRegEnd = apuRegBase + Apu::REG_COUNT - 1;
     
 public:
     void cpuMemWrite(uint16_t addr, uint8_t val);

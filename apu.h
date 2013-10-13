@@ -266,13 +266,12 @@ public:
     void generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32_t reqSamples);
 };
 
-/*
 class Noise {
     enum {
-        NOISE_LINEAR_COUNTER, // crrrrrrr (control flag, reload)
+        NOISE_VOLUME_DECAY,   // --lennnn (loop env/disable length, env disable, vol/env period)
         NOISE_UNUSED,         // 
-        NOISE_FREQUENCY,      // llllllll (lower 8 of period)
-        NOISE_LENGTH,         // iiiiihhh (length index, upper 3 of period)
+        NOISE_FREQUENCY,      // m---pppp (short mode, period index)
+        NOISE_LENGTH,         // lllll--- (length index)
         NOISE_REG_COUNT
     };
     uint8_t *regs;
@@ -283,46 +282,70 @@ class Noise {
     
     // sequencer logic 
     float time;
+
+    // noise shift register
+    uint16_t shiftRegister;
+    
+    // envelope logic
+    uint8_t envelope;
+    uint8_t envelopeDivider;
+    bool resetEnvelopeAndDivider;
+
+    // constants 
     static constexpr float cpuClk = 1.789773 * 1.0E6;
+    uint16_t periodTable[16] = {
+        0x004, 0x008, 0x010, 0x020,
+        0x040, 0x060, 0x080, 0x0a0,
+        0x0ca, 0x0fe, 0x17c, 0x1fc,
+        0x2fa, 0x3f8, 0x7f2, 0xfe4 
+    };
 
-    // linear counter logic
-    bool linearCounterHalt;
-    uint8_t linearCounter;
-
-    bool isHalted() const {
-        return (regs[TRIANGLE_LINEAR_COUNTER] & (1 << 7)) != 0;
-    }
-    bool isNonZeroLinearCounter() const {
-        return linearCounter != 0;
-    }
+    // Query functions
     uint8_t getLengthIndex() const {
-        return (regs[TRIANGLE_LENGTH] >> 3);
+        return (regs[NOISE_LENGTH] >> 3);
+    }
+    uint8_t getTimerPeriodIndex() const {
+        return regs[NOISE_FREQUENCY] & 0xf;
     }
     uint16_t getTimerPeriod() const {
-        return (uint16_t)regs[TRIANGLE_FREQUENCY] | (((uint16_t)regs[TRIANGLE_LENGTH] & 0x7) << 8);
+        uint8_t index = getTimerPeriodIndex();
+        assert(index < sizeof(periodTable) / sizeof(periodTable[0]));
+        return periodTable[index];
     }
     float getToneFrequency() const {
-        return cpuClk / (32.0f * (getTimerPeriod() + 1)); 
+        return cpuClk / (16.0f * (getTimerPeriod() + 1)); 
     }
-    uint8_t getLinearCounterReload() const {
-        return (regs[TRIANGLE_LINEAR_COUNTER] & ~(1 << 7));
+    bool isShortMode() const {
+        return (regs[NOISE_FREQUENCY] & (1 << 7)) != 0;
     }
-    bool getControlFlag() const {
-        return (regs[TRIANGLE_LINEAR_COUNTER] & (1 << 7)) != 0;
+    bool isEnvelopeLoopSet() const {
+        return (regs[NOISE_VOLUME_DECAY] & (1 << 5)) != 0;
     }
+    bool isHalted() const {
+        return (regs[NOISE_VOLUME_DECAY] & (1 << 5)) != 0;
+    }
+    bool isDisabled() const {
+        return (regs[NOISE_VOLUME_DECAY] & (1 << 4)) != 0;
+    }
+    uint8_t getEnvelopeN() const {
+        return (regs[NOISE_VOLUME_DECAY] & 0xf);
+    }
+    uint16_t getNextShiftReg(uint16_t reg) const;
 public:   
+    uint8_t getVolume();
+    void envelopeDividerClock();
     bool isNonZeroLength() const {
         return lengthCounter != 0;
     }
     void resetLength() {
         lengthCounter = lengthIndexToValue(getLengthIndex());
     }
+    void resetEnvelope() {
+        resetEnvelopeAndDivider = true;
+    }
     void zeroLength() {
         lengthCounter = 0;
     } 
-    void setHaltFlag() {
-        linearCounterHalt = true;
-    }
     void resetSequencer() {
         time = 0.0f; 
     }
@@ -331,15 +354,17 @@ public:
         apu{parent},
         lengthCounter{0},
         time{0.0f},
-        linearCounterHalt{false}
+        shiftRegister{1},
+        envelope{0},
+        envelopeDivider{0},
+        resetEnvelopeAndDivider{true}
     {}
     Noise(const Pulse&) = delete;
     ~Noise() {}
+    void clockEnvelope();
     void clockLength();
-    void clockLinearCounter();
     void generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32_t reqSamples);
 };
-*/
 
 class Apu {
 public:
@@ -418,10 +443,12 @@ private:
     Pulse pulseA;
     Pulse pulseB;
     Triangle triangle;
+    Noise noise;
 
     std::vector<uint8_t> pulseAFrame;
     std::vector<uint8_t> pulseBFrame;
     std::vector<uint8_t> triangleFrame;
+    std::vector<uint8_t> noiseFrame;
     std::vector<int16_t> fullFrame;
 
     RingBuffer<int16_t> rb;
@@ -481,10 +508,13 @@ public:
         triangleFrame.resize(samples);
         triangle.generateFrame(triangleFrame, sampleRate, samples);
 
+        noiseFrame.resize(samples);
+        noise.generateFrame(noiseFrame, sampleRate, samples);
+
         fullFrame.resize(samples);
         for (uint32_t i = 0; i < samples; i++) {
             float sample = 95.88f  / ((8128.0f  / (float(pulseAFrame[i] + pulseBFrame[i]))) + 100.0f);
-            sample += 159.79f / (100.0f + (1.0f / ((float(triangleFrame[i]) / 8227.0f))));
+            sample += 159.79f / (100.0f + (1.0f / ((float(triangleFrame[i]) / 8227.0f) + float(noiseFrame[i]) / 12241.0f)));
             int16_t truncSamples = (int16_t)(sample * (1 << 14));
             fullFrame[i] = truncSamples;
         }
@@ -496,6 +526,7 @@ public:
         pulseA.clockLengthAndSweep();
         pulseB.clockLengthAndSweep();
         triangle.clockLength();
+        noise.clockLength();
     }
     void clockEnvAndTriangle() {
         pulseA.clockEnvelope(); 
@@ -562,6 +593,9 @@ public:
             if (~val & STATUS_CHANNEL3_LENGTH) {
                 triangle.zeroLength();
             }
+            if (~val & STATUS_CHANNEL4_LENGTH) {
+                noise.zeroLength();
+            }
         }
         else if (reg == CHANNEL1_LENGTH) {
             pulseA.resetLength();
@@ -578,6 +612,11 @@ public:
             triangle.resetSequencer();
             triangle.setHaltFlag();
         }
+        else if (reg == CHANNEL4_LENGTH) {
+            noise.resetLength(); 
+            noise.resetSequencer();
+            noise.resetEnvelope();
+        }
     }
     uint8_t readReg(uint32_t reg) {
         uint8_t result = regs[reg];
@@ -587,6 +626,7 @@ public:
             result |= pulseA.isNonZeroLength() ? STATUS_CHANNEL1_LENGTH : 0;
             result |= pulseB.isNonZeroLength() ? STATUS_CHANNEL2_LENGTH : 0;
             result |= triangle.isNonZeroLength() ? STATUS_CHANNEL3_LENGTH : 0;
+            result |= noise.isNonZeroLength() ? STATUS_CHANNEL4_LENGTH : 0;
         }
         return result;
     }
