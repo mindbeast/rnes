@@ -74,7 +74,6 @@ template <typename T> struct RingBuffer {
 class Apu;
 
 class Pulse {
-public:
     enum {
         PULSE_VOLUME_DECAY, // ddlDnnnn (duty cycle, loop, Disable, n)
         PULSE_SWEEP,        // epppnsss (enable, period, negate, shift)
@@ -88,18 +87,25 @@ public:
         CYCLE_50     = 2,
         CYCLE_25_NEG = 3,
     };
-    Pulse(uint8_t *argRegs, Apu *parent, bool primaryPulse) : 
-        regs{argRegs},
-        primary{primaryPulse},
-        apu{parent},
-        envelope{0},
-        envelopeDivider{0},
-        resetEnvelopeAndDivider{true},
-        resetSweepDivider{true},
-        sweepDivider{0},
-        time(0.0f) {}
-    Pulse(const Pulse&) = delete;
-    ~Pulse() {}
+
+    uint8_t *regs;
+    bool primary;
+    Apu *apu;
+
+    // length logic
+    uint8_t lengthCounter;
+    
+    // envelope logic
+    uint8_t envelope;
+    uint8_t envelopeDivider;
+    bool resetEnvelopeAndDivider;
+
+    // sweep logic
+    bool resetSweepDivider;
+    uint8_t sweepDivider;
+    
+    float time;
+    static constexpr float cpuClk = 1.789773 * 1.0E6;
 
     // Query functions
     bool isEnvelopeLoopSet() const {
@@ -110,9 +116,6 @@ public:
     }
     bool isDisabled() const {
         return (regs[PULSE_VOLUME_DECAY] & (1 << 4)) != 0;
-    }
-    bool isNonZeroLength() const {
-        return lengthCounter != 0;
     }
     uint8_t getEnvelopeN() const {
         return (regs[PULSE_VOLUME_DECAY] & 0xf);
@@ -148,70 +151,27 @@ public:
         regs[PULSE_FREQUENCY] = (uint8_t)period;
         regs[PULSE_LENGTH] = (regs[PULSE_LENGTH] & 0xf8) | ((uint8_t)(period >> 8) & 0x7);
     }
+    uint16_t computeSweepTarget() const;
+    void sweepPeriod();
+    uint8_t getVolume();
+    void envelopeDividerClock();
 
-    // Internal pulse unit functions
-    void envelopeDividerClock() {
-        if (envelope) {
-            envelope--;
-        }
-        else if (isEnvelopeLoopSet()) {
-            envelope = 15; 
-        }
-    }
-    void clockEnvelope() {
-        if (resetEnvelopeAndDivider) {
-            envelope = 15;
-            envelopeDivider = getEnvelopeN() + 1;
-            resetEnvelopeAndDivider = false;
-        } 
-        else {
-            if (envelopeDivider) {
-                envelopeDivider--;
-            }
-            else {
-                envelopeDividerClock();
-                envelopeDivider = getEnvelopeN() + 1;
-            }
-        }
-    }
-    uint16_t computeSweepTarget() {
-        uint16_t period = getTimerPeriod(); 
-        uint16_t shiftedPeriod = period >> getSweepShift();
-        if (isSweepNegative()) {
-            shiftedPeriod = isFirstPulse() ? -shiftedPeriod : -shiftedPeriod + 1;
-        }
-        uint16_t targetPeriod = period + shiftedPeriod;
-        return targetPeriod;
-    }
-    void sweepPeriod() {
-        uint16_t targetPeriod = computeSweepTarget();
-        uint16_t period = getTimerPeriod(); 
-        if (targetPeriod > 0x7ff or period < 8) {
-            return;
-        }
-        setTimerPeriod(targetPeriod); 
-    }
-    void clockLengthAndSweep() {
-        // Length
-        if (!isHalted() and lengthCounter) {
-           lengthCounter--; 
-        }   
-        // Sweep
-        if (resetSweepDivider) {
-            sweepDivider = getSweepP() + 1;
-            resetSweepDivider = false;
-        }
-        else {
-            if (sweepDivider) {
-                sweepDivider--; 
-            } 
-            else {
-                if (isSweepEnabled()) {
-                    sweepDivider = getSweepP() + 1;
-                    sweepPeriod();
-                }
-            }
-        }
+public:
+    Pulse(uint8_t *argRegs, Apu *parent, bool primaryPulse) : 
+        regs{argRegs},
+        primary{primaryPulse},
+        apu{parent},
+        envelope{0},
+        envelopeDivider{0},
+        resetEnvelopeAndDivider{true},
+        resetSweepDivider{true},
+        sweepDivider{0},
+        time(0.0f) {}
+    Pulse(const Pulse&) = delete;
+    ~Pulse() {}
+
+    bool isNonZeroLength() const {
+        return lengthCounter != 0;
     }
     void resetLength() {
         lengthCounter = lengthIndexToValue(getLengthIndex());
@@ -228,37 +188,10 @@ public:
     void resetSweep() {
         resetSweepDivider = true;
     }
-    uint8_t getVolume() {
-        if (isDisabled()) {
-            return getEnvelopeN();
-        } 
-        else {
-            return envelope;
-        }
-    }
+    void clockEnvelope();
+    void clockLengthAndSweep();
     void generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32_t reqSamples);
-private:
-    uint8_t *regs;
-    bool primary;
-    Apu *apu;
-
-    // length logic
-    uint8_t lengthCounter;
-    
-    // envelope logic
-    uint8_t envelope;
-    uint8_t envelopeDivider;
-    bool resetEnvelopeAndDivider;
-
-    // sweep logic
-    bool resetSweepDivider;
-    uint8_t sweepDivider;
-    
-    float time;
-    // real cpu frequency (ntsc)
-    static constexpr float cpuClk = 1.789773 * 1.0E6;
 };
-
 
 class Triangle {
     enum {
@@ -316,6 +249,9 @@ public:
     void setHaltFlag() {
         linearCounterHalt = true;
     }
+    void resetSequencer() {
+        time = 0.0f; 
+    }
     Triangle(uint8_t *argRegs, Apu *parent) : 
         regs{argRegs},
         apu{parent},
@@ -325,28 +261,85 @@ public:
     {}
     Triangle(const Pulse&) = delete;
     ~Triangle() {}
-    void clockLength() {
-        // Length
-        if (!isHalted() and lengthCounter) {
-           lengthCounter--; 
-        }   
-    }
-    void clockLinearCounter() {
-        if (linearCounterHalt) {
-            linearCounter = getLinearCounterReload();
-        }
-        else if (linearCounter) {
-            linearCounter--;
-        }
-        if (!getControlFlag()) {
-            linearCounterHalt = false; 
-        } 
-    }
-    void resetSequencer() {
-    //    time = 0.0f; 
-    }
+    void clockLength();
+    void clockLinearCounter();
     void generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32_t reqSamples);
 };
+
+/*
+class Noise {
+    enum {
+        NOISE_LINEAR_COUNTER, // crrrrrrr (control flag, reload)
+        NOISE_UNUSED,         // 
+        NOISE_FREQUENCY,      // llllllll (lower 8 of period)
+        NOISE_LENGTH,         // iiiiihhh (length index, upper 3 of period)
+        NOISE_REG_COUNT
+    };
+    uint8_t *regs;
+    Apu *apu;
+    
+    // length logic
+    uint8_t lengthCounter;
+    
+    // sequencer logic 
+    float time;
+    static constexpr float cpuClk = 1.789773 * 1.0E6;
+
+    // linear counter logic
+    bool linearCounterHalt;
+    uint8_t linearCounter;
+
+    bool isHalted() const {
+        return (regs[TRIANGLE_LINEAR_COUNTER] & (1 << 7)) != 0;
+    }
+    bool isNonZeroLinearCounter() const {
+        return linearCounter != 0;
+    }
+    uint8_t getLengthIndex() const {
+        return (regs[TRIANGLE_LENGTH] >> 3);
+    }
+    uint16_t getTimerPeriod() const {
+        return (uint16_t)regs[TRIANGLE_FREQUENCY] | (((uint16_t)regs[TRIANGLE_LENGTH] & 0x7) << 8);
+    }
+    float getToneFrequency() const {
+        return cpuClk / (32.0f * (getTimerPeriod() + 1)); 
+    }
+    uint8_t getLinearCounterReload() const {
+        return (regs[TRIANGLE_LINEAR_COUNTER] & ~(1 << 7));
+    }
+    bool getControlFlag() const {
+        return (regs[TRIANGLE_LINEAR_COUNTER] & (1 << 7)) != 0;
+    }
+public:   
+    bool isNonZeroLength() const {
+        return lengthCounter != 0;
+    }
+    void resetLength() {
+        lengthCounter = lengthIndexToValue(getLengthIndex());
+    }
+    void zeroLength() {
+        lengthCounter = 0;
+    } 
+    void setHaltFlag() {
+        linearCounterHalt = true;
+    }
+    void resetSequencer() {
+        time = 0.0f; 
+    }
+    Noise(uint8_t *argRegs, Apu *parent) : 
+        regs{argRegs},
+        apu{parent},
+        lengthCounter{0},
+        time{0.0f},
+        linearCounterHalt{false}
+    {}
+    Noise(const Pulse&) = delete;
+    ~Noise() {}
+    void clockLength();
+    void clockLinearCounter();
+    void generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32_t reqSamples);
+};
+*/
 
 class Apu {
 public:

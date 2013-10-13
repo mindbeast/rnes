@@ -16,6 +16,89 @@ static void fillSilent(std::vector<uint8_t>& ref, uint32_t reqSamples)
         ref[i] = 0;
     }
 }
+
+uint16_t Pulse::computeSweepTarget() const
+{
+    uint16_t period = getTimerPeriod(); 
+    uint16_t shiftedPeriod = period >> getSweepShift();
+    if (isSweepNegative()) {
+        shiftedPeriod = isFirstPulse() ? -shiftedPeriod : -shiftedPeriod + 1;
+    }
+    uint16_t targetPeriod = period + shiftedPeriod;
+    return targetPeriod;
+}
+
+void Pulse::sweepPeriod()
+{
+    uint16_t targetPeriod = computeSweepTarget();
+    uint16_t period = getTimerPeriod(); 
+    if (targetPeriod > 0x7ff or period < 8) {
+        return;
+    }
+    setTimerPeriod(targetPeriod); 
+}
+
+uint8_t Pulse::getVolume()
+{
+    if (isDisabled()) {
+        return getEnvelopeN();
+    } 
+    else {
+        return envelope;
+    }
+}
+
+void Pulse::envelopeDividerClock()
+{
+    if (envelope) {
+        envelope--;
+    }
+    else if (isEnvelopeLoopSet()) {
+        envelope = 15; 
+    }
+}
+
+void Pulse::clockEnvelope()
+{
+    if (resetEnvelopeAndDivider) {
+        envelope = 15;
+        envelopeDivider = getEnvelopeN() + 1;
+        resetEnvelopeAndDivider = false;
+    } 
+    else {
+        if (envelopeDivider) {
+            envelopeDivider--;
+        }
+        else {
+            envelopeDividerClock();
+            envelopeDivider = getEnvelopeN() + 1;
+        }
+    }
+}
+
+void Pulse::clockLengthAndSweep()
+{
+    // Length
+    if (!isHalted() and lengthCounter) {
+       lengthCounter--; 
+    }   
+    // Sweep
+    if (resetSweepDivider) {
+        sweepDivider = getSweepP() + 1;
+        resetSweepDivider = false;
+    }
+    else {
+        if (sweepDivider) {
+            sweepDivider--; 
+        } 
+        else {
+            if (isSweepEnabled()) {
+                sweepDivider = getSweepP() + 1;
+                sweepPeriod();
+            }
+        }
+    }
+}
  
 void Pulse::generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32_t reqSamples)
 {
@@ -62,6 +145,25 @@ void Pulse::generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32
         ref[i] = sampleVolume; 
         currentTime += timePerSample;
     }
+}
+
+void Triangle::clockLength() {
+    // Length
+    if (!isHalted() and lengthCounter) {
+       lengthCounter--; 
+    }   
+}
+
+void Triangle::clockLinearCounter() {
+    if (linearCounterHalt) {
+        linearCounter = getLinearCounterReload();
+    }
+    else if (linearCounter) {
+        linearCounter--;
+    }
+    if (!getControlFlag()) {
+        linearCounterHalt = false; 
+    } 
 }
 
 void Triangle::generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32_t reqSamples)
