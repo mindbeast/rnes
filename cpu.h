@@ -20,7 +20,6 @@
 
 class Nes;
 
-
 struct OpcodeHash {
     size_t operator()(uint8_t opcode) const {
         return opcode;

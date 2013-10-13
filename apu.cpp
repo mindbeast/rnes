@@ -197,6 +197,94 @@ void Triangle::generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uin
     }    
 }
 
+
+uint16_t Noise::getNextShiftReg(uint16_t reg) const
+{
+    uint16_t newBit = 0;
+    if (isShortMode()) {
+        newBit = ((reg) ^ (reg >> 6)) << 15;
+    }
+    else {
+        newBit = ((reg) ^ (reg >> 1)) << 15;
+    }
+    return newBit | (reg >> 1);
+}
+
+uint8_t Noise::getVolume()
+{
+    if (isDisabled()) {
+        return getEnvelopeN();
+    } 
+    else {
+        return envelope;
+    }
+}
+
+void Noise::envelopeDividerClock()
+{
+    if (envelope) {
+        envelope--;
+    }
+    else if (isEnvelopeLoopSet()) {
+        envelope = 15; 
+    }
+}
+
+void Noise::clockEnvelope()
+{
+    if (resetEnvelopeAndDivider) {
+        envelope = 15;
+        envelopeDivider = getEnvelopeN() + 1;
+        resetEnvelopeAndDivider = false;
+    } 
+    else {
+        if (envelopeDivider) {
+            envelopeDivider--;
+        }
+        else {
+            envelopeDividerClock();
+            envelopeDivider = getEnvelopeN() + 1;
+        }
+    }
+}
+
+void Noise::clockLength()
+{
+    // Length
+    if (!isHalted() and lengthCounter) {
+       lengthCounter--; 
+    }   
+}
+ 
+void Noise::generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32_t reqSamples)
+{
+    const float toneFrequency = getToneFrequency();
+    const float toneWaveLength = 1.0f / toneFrequency;
+    const float timePerSample = 1.0f / float(sampleRate);
+    const uint16_t volume = getVolume();
+    float currentTime = time;
+    time += timePerSample * reqSamples;
+
+    // length has run out, channel is silenced
+    if (!isNonZeroLength()) {
+        fillSilent(ref, reqSamples);
+        return;
+    }
+    
+    uint32_t prevClock = 0;
+    assert(ref.size() >= reqSamples); 
+    for (uint32_t i = 0; i < reqSamples; i++) {
+        float offsetInWavelengths = currentTime / toneWaveLength; 
+        uint32_t currentClock = offsetInWavelengths; 
+        for (uint32_t i = 0; i < currentClock - prevClock; i++) {
+            shiftRegister = getNextShiftReg(shiftRegister);
+        }
+        ref[i] = (shiftRegister & 1) ? volume : 0; 
+        currentTime += timePerSample;
+        prevClock = currentClock;
+    }
+}
+
 void apuSdlCallback(void *data, uint8_t *stream, int len)
 {
     RingBuffer<int16_t> *rb = (RingBuffer<int16_t>*)data;
@@ -224,6 +312,7 @@ Apu::Apu(Nes *parent, Sdl *audio) :
     pulseA{&regs[CHANNEL1_VOLUME_DECAY], this, true},
     pulseB{&regs[CHANNEL2_VOLUME_DECAY], this, false},
     triangle{&regs[CHANNEL3_LINEAR_COUNTER], this},
+    noise{&regs[CHANNEL4_VOLUME_DECAY], this},
     rb{1 << 15}
 {
     sampleRate = audio->getSampleRate(); 
