@@ -8,15 +8,23 @@
 
 #include "ppu.h"
 #include "nes.h"
+#include "time.h"
+#include "sys/time.h"
+#include <assert.h>
 
-static uint32_t timerGetMs()
+static void sleepMs(float ms)
 {
-    return SDL_GetTicks();
+    struct timespec wait = {
+        0, (long)(ms * 1000000)
+    };
+    nanosleep(&wait, NULL);
 }
 
-static void sleepMs(uint32_t ms)
+static float timerGetMs()
 {
-    SDL_Delay(ms);
+    struct timespec ts;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
+    return ts.tv_sec * 1000.0f + ts.tv_nsec / 1000000.0f;
 }
 
 Ppu::Ppu(Nes *parent, Sdl *disp) : nes{parent}, sdl{disp}
@@ -324,13 +332,17 @@ void Ppu::tick()
     }
     else if (scanline == vblankScanelineEnd and lineClock == (ticksPerScanline - 1)) {
         sdl->renderSync();
-        uint32_t currentTime = timerGetMs();
-        uint32_t diffTime = currentTime - lastFrameTimeMs;
-        if (diffTime < frameTimeMs) {
-            uint32_t waitTime = frameTimeMs - diffTime;
-            if (frame % frameRate < 1000 - frameRate * frameTimeMs) {
-                waitTime += 1;
-            }
+        float currentFrameTimeMs = frameTimeMs;
+        /*
+        if (frame % frameRate < 1000 - frameRate * frameTimeMs) {
+            currentFrameTimeMs += 1;
+        }
+        */
+        float currentTime = timerGetMs();
+        //std::cout << "curtime " << currentTime << std::endl;
+        float diffTime = currentTime - lastFrameTimeMs;
+        if (diffTime < currentFrameTimeMs) {
+            float waitTime = currentFrameTimeMs - diffTime;
             sleepMs(waitTime);
         }
         lastFrameTimeMs = timerGetMs();

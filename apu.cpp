@@ -229,14 +229,12 @@ void apuSdlCallback(void *data, uint8_t *stream, int len)
     int16_t *outData = (int16_t*)stream;
     uint32_t rbCount = rb->getCount(); 
     
-    std::cout << "rbCount: " << rbCount << std::endl;
-    std::cout << "sample: " << (int)outData[0] << std::endl;
-    if (rbCount < items) {
-        rb->getData(outData, rbCount);
+    std::cout << "rbCount - items: " << (int)items - rbCount << std::endl;
+
+    while (rbCount < items) {
+        rbCount = rb->getCount(); 
     }
-    else {
-        rb->getData(outData, items);
-    }
+    rb->getData(outData, items);
 }
 
 void Apu::clockLengthAndSweep()
@@ -309,15 +307,15 @@ void Apu::generateSample()
     //float sample = (samples[sampleOffset % sampleBufferSize] + samples[(sampleOffset - 32) % sampleBufferSize]) / 2;
     float sample = 0.0f;
     sample += 0.02051777 * (samples[sampleOffset % sampleBufferSize]);
-    sample += 0.06532911* (samples[(sampleOffset - 1) % sampleBufferSize]);
-    sample += 0.16640572* (samples[(sampleOffset  - 2)% sampleBufferSize]);
+    sample += 0.06532911 * (samples[(sampleOffset - 1) % sampleBufferSize]);
+    sample += 0.16640572 * (samples[(sampleOffset  - 2)% sampleBufferSize]);
     sample += 0.2477474 * (samples[(sampleOffset  - 3)% sampleBufferSize]);
     sample += 0.2477474 * (samples[(sampleOffset  - 4)% sampleBufferSize]);
-    sample += 0.16640572* (samples[(sampleOffset  - 5) % sampleBufferSize]);
-    sample += 0.06532911* (samples[(sampleOffset  - 6) % sampleBufferSize]);
+    sample += 0.16640572 * (samples[(sampleOffset  - 5) % sampleBufferSize]);
+    sample += 0.06532911 * (samples[(sampleOffset  - 6) % sampleBufferSize]);
     sample += 0.02051777 * (samples[(sampleOffset - 7 )% sampleBufferSize]);
 
-    int16_t truncSample = (int16_t)((sample - 0.5) * (1 << 14));
+    int16_t truncSample = (int16_t)((sample) * (1 << 14));
     if (rb.hasEmptySpace(1)) {
         rb.putSingle(truncSample);
     }
@@ -340,6 +338,10 @@ void Apu::tick()
 
     // Sample capture
     sampleOffset += 1;
+    /*
+    std::cerr << "pulseA: " << (int)pulseA.getCurrentSample() << " pulseB: " << (int)pulseB.getCurrentSample()
+              << " triangle: " << (int)triangle.getCurrentSample() << " noise: " << (int)noise.getCurrentSample() << std::endl;
+    */
     float sample = 95.88f  / ((8128.0f  / (float(pulseA.getCurrentSample() + pulseB.getCurrentSample()))) + 100.0f);
     sample += 159.79f / (100.0f + (1.0f / ((float(triangle.getCurrentSample()) / 8227.0f) + float(noise.getCurrentSample()) / 12241.0f)));
     samples[sampleOffset % sampleBufferSize] = sample;

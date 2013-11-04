@@ -13,6 +13,8 @@
 #include <vector>
 #include <cassert>
 #include <iostream>
+#include <mutex>
+#include <condition_variable>
 
 class Sdl;
 class Nes;
@@ -42,6 +44,8 @@ template <typename T> struct RingBuffer {
     std::vector<T> buffer;
     uint32_t size;
     volatile uint64_t get, put;
+    std::mutex mutex;
+    std::condition_variable cv;
     RingBuffer(uint32_t sz) : buffer(sz, 0), size{sz}, get{0}, put{0} {
         assert(isPow2(sz));
     }
