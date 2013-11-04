@@ -28,7 +28,7 @@ public:
 
 private:
     SDL_Surface *display = nullptr;
-    static const int dispMultiple = 2;
+    static const int dispMultiple = 4;
     static const int renderWidth = 256;
     static const int renderHeight = 240;
     static const int displayHeight = dispMultiple * renderHeight;

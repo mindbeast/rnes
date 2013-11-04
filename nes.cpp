@@ -137,7 +137,7 @@ uint8_t Nes::vidMemRead(uint16_t addr)
 
 void Nes::run()
 {
-    uint32_t inputCycles = 1 << 20;
+    uint32_t inputCycles = 1 << 16;
     cpu.reset();
     while (1) {
         uint32_t cpuCycles;
@@ -147,13 +147,21 @@ void Nes::run()
         else {
             cpuCycles = spriteDmaExecute();
         }
-        ppu.run(cpuCycles);
         apu.run(cpuCycles);
+        ppu.run(cpuCycles);
 
         cycles += cpuCycles;
         if ((cycles % inputCycles) == 0) {
             sdl.parseInput();
         }
+        /*
+        sdl->renderSync();
+        uint32_t currentTime = timerGetMs();
+        if (currentTime - lastFrameTimeMs < frameTimeMs+1) {
+            sleepMs(frameTimeMs +1 - (currentTime - lastFrameTimeMs));
+        }
+        lastFrameTimeMs = timerGetMs();
+        */
     }
 }
 

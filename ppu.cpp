@@ -312,13 +312,6 @@ void Ppu::tick()
     
     // set and unset vblank register
     if (scanline == vblankScanline and lineClock == 0) {        
-        sdl->renderSync();
-        uint32_t currentTime = timerGetMs();
-        if (currentTime - lastFrameTimeMs < frameTimeMs) {
-            sleepMs(frameTimeMs - (currentTime - lastFrameTimeMs));
-        }
-        lastFrameTimeMs = timerGetMs();
-        
         setVblankFlag();
         if (nmiOnVblank()) {
             nmiRequested = true;
@@ -328,6 +321,20 @@ void Ppu::tick()
         clearVblankFlag();
         clearSprite0Hit();
         clearLostSprites();
+    }
+    else if (scanline == vblankScanelineEnd and lineClock == (ticksPerScanline - 1)) {
+        sdl->renderSync();
+        uint32_t currentTime = timerGetMs();
+        uint32_t diffTime = currentTime - lastFrameTimeMs;
+        if (diffTime < frameTimeMs) {
+            uint32_t waitTime = frameTimeMs - diffTime;
+            if (frame % frameRate < 1000 - frameRate * frameTimeMs) {
+                waitTime += 1;
+            }
+            sleepMs(waitTime);
+        }
+        lastFrameTimeMs = timerGetMs();
+        frame += 1;
     }
     cycle += 1;
 }

@@ -10,13 +10,6 @@
 #include "sdl.h"
 #include <cmath>
 
-static void fillSilent(std::vector<uint8_t>& ref, uint32_t reqSamples)
-{
-    for (uint32_t i = 0; i < reqSamples; i++) {
-        ref[i] = 0;
-    }
-}
-
 uint16_t Pulse::computeSweepTarget() const
 {
     uint16_t period = getTimerPeriod(); 
@@ -38,7 +31,7 @@ void Pulse::sweepPeriod()
     setTimerPeriod(targetPeriod); 
 }
 
-uint8_t Pulse::getVolume()
+uint8_t Pulse::getVolume() const
 {
     if (isDisabled()) {
         return getEnvelopeN();
@@ -99,52 +92,21 @@ void Pulse::clockLengthAndSweep()
         }
     }
 }
- 
-void Pulse::generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32_t reqSamples)
+
+void Pulse::updateSample()
 {
-    const float toneFrequency = getToneFrequency();
-    const float toneWaveLength = 1.0f / toneFrequency;
-    const float timePerSample = 1.0f / float(sampleRate);
-    const uint16_t volume = getVolume();
-    float threshhold = 0.0f;
     const DutyCycle cycle = getDutyCycle();
-    float currentTime = time;
-    time += timePerSample * reqSamples;
 
-    // length has run out, channel is silenced
-    if (!isNonZeroLength()) {
-        fillSilent(ref, reqSamples);
-        return;
-    }
-    // channel is silenced when period is < 8
-    const uint16_t timerPeriod = getTimerPeriod();
-    if (timerPeriod < 8) {
-        fillSilent(ref, reqSamples);
-        return;
-    }
-    // channel silenced when target is above 0x7ff
-    const uint16_t targetPeriod = computeSweepTarget();
-    if (targetPeriod > 0x7ff) {
-        fillSilent(ref, reqSamples);
-        return;
-    }
-    
-    switch (cycle) {
-        case CYCLE_12_5:   threshhold = 0.125f; break;
-        case CYCLE_25:     threshhold = 0.25f;  break;
-        case CYCLE_50:     threshhold = 0.50f;  break;
-        case CYCLE_25_NEG: threshhold = 0.75f;  break;
-        default: assert(0); break;
-    }
+    currentSample = (sequences[cycle] & (1 << sequencerOffset)) != 0;
+    sequencerOffset = (sequencerOffset + 1) % 8;
+}
 
-    assert(ref.size() >= reqSamples); 
-    for (uint32_t i = 0; i < reqSamples; i++) {
-        float offsetInWavelengths = currentTime / toneWaveLength; 
-        float offsetInWave = offsetInWavelengths - truncf(offsetInWavelengths);
-        uint16_t sampleVolume = (offsetInWave <= threshhold) ? volume : 0;
-        ref[i] = sampleVolume; 
-        currentTime += timePerSample;
+void Pulse::clockTimer()
+{
+    if (timerDivider == 0) {
+        updateSample();
     }
+    timerDivider = (timerDivider + 1) % getTimerPeriod();
 }
 
 void Triangle::clockLength() {
@@ -166,37 +128,20 @@ void Triangle::clockLinearCounter() {
     } 
 }
 
-void Triangle::generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32_t reqSamples)
+void Triangle::updateSample()
 {
-    const float toneFrequency = getToneFrequency();
-    const float toneWaveLength = 1.0f / toneFrequency;
-    const float timePerSample = 1.0f / float(sampleRate);
-    float currentTime = time;
-    time += timePerSample * reqSamples;
-
     // length has run out or linear counter out, channel is silenced
-    if (!isNonZeroLength() || !isNonZeroLinearCounter()) {
-        fillSilent(ref, reqSamples);
-        return;
-    }
-
-    assert(ref.size() >= reqSamples); 
-    for (uint32_t i = 0; i < reqSamples; i++) {
-        float offsetInWavelengths = currentTime / toneWaveLength; 
-        float offsetInWave = 32.0f * (offsetInWavelengths - truncf(offsetInWavelengths));
-        uint32_t sequence = (uint32_t)truncf(offsetInWave);
-        assert(sequence < 32);
-        if (sequence < 16) {
-            ref[i] = 15 - sequence;
-        }
-        else {
-            ref[i] = sequence - 1 - 15;
-        }
-        assert(ref[i] <= 15);
-        currentTime += timePerSample;
-    }    
+    currentSample = sequence[sequencerOffset];
+    sequencerOffset = (sequencerOffset + 1) % 32;
 }
 
+void Triangle::clockTimer()
+{
+    if (timerDivider == 0 and isNonZeroLength() && isNonZeroLinearCounter()) {
+        updateSample();
+    }
+    timerDivider = (timerDivider + 1) % (getTimerPeriod());
+}
 
 uint16_t Noise::getNextShiftReg(uint16_t reg) const
 {
@@ -210,7 +155,7 @@ uint16_t Noise::getNextShiftReg(uint16_t reg) const
     return newBit | (reg >> 1);
 }
 
-uint8_t Noise::getVolume()
+uint8_t Noise::getVolume() const
 {
     if (isDisabled()) {
         return getEnvelopeN();
@@ -256,33 +201,25 @@ void Noise::clockLength()
     }   
 }
  
-void Noise::generateFrame(std::vector<uint8_t>& ref, uint32_t sampleRate, uint32_t reqSamples)
+void Noise::updateSample()
 {
-    const float toneFrequency = getToneFrequency();
-    const float toneWaveLength = 1.0f / toneFrequency;
-    const float timePerSample = 1.0f / float(sampleRate);
     const uint16_t volume = getVolume();
-    float currentTime = time;
-    time += timePerSample * reqSamples;
 
     // length has run out, channel is silenced
     if (!isNonZeroLength()) {
-        fillSilent(ref, reqSamples);
+        currentSample = 0;
         return;
     }
-    
-    uint32_t prevClock = 0;
-    assert(ref.size() >= reqSamples); 
-    for (uint32_t i = 0; i < reqSamples; i++) {
-        float offsetInWavelengths = currentTime / toneWaveLength; 
-        uint32_t currentClock = offsetInWavelengths; 
-        for (uint32_t i = 0; i < currentClock - prevClock; i++) {
-            shiftRegister = getNextShiftReg(shiftRegister);
-        }
-        ref[i] = (shiftRegister & 1) ? volume : 0; 
-        currentTime += timePerSample;
-        prevClock = currentClock;
+    shiftRegister = getNextShiftReg(shiftRegister);
+    currentSample = (shiftRegister & 1) ? volume : 0;
+}
+
+void Noise::clockTimer()
+{
+    if (timerDivider == 0) {
+        updateSample();
     }
+    timerDivider = (timerDivider + 1) % getTimerPeriod();
 }
 
 void apuSdlCallback(void *data, uint8_t *stream, int len)
@@ -292,20 +229,198 @@ void apuSdlCallback(void *data, uint8_t *stream, int len)
     int16_t *outData = (int16_t*)stream;
     uint32_t rbCount = rb->getCount(); 
     
-    if (rbCount >= items) {
-        rb->getData(outData, items);
+    std::cout << "rbCount: " << rbCount << std::endl;
+    std::cout << "sample: " << (int)outData[0] << std::endl;
+    if (rbCount < items) {
+        rb->getData(outData, rbCount);
     }
     else {
-        rb->getData(outData, rbCount);
-        memset(&outData[rbCount], 0, sizeof(int16_t) * (items - rbCount));
+        rb->getData(outData, items);
     }
+}
+
+void Apu::clockLengthAndSweep()
+{
+    pulseA.clockLengthAndSweep();
+    pulseB.clockLengthAndSweep();
+    triangle.clockLength();
+    noise.clockLength();
+} 
+
+void Apu::clockEnvAndTriangle()
+{
+    pulseA.clockEnvelope(); 
+    pulseB.clockEnvelope();
+    triangle.clockLinearCounter();
+}
+
+void Apu::resetFrameCounter()
+{
+    frameDivider = 0;
+    step = 0;
+    if (!isFourStepFrame())  {
+        stepAdvance();
+    }
+}
+
+void Apu::stepAdvance()
+{
+    uint32_t frameSteps = isFourStepFrame() ? 4 : 5;
+    
+    if (isFourStepFrame())  {
+        if (step % 2) {
+            clockLengthAndSweep();
+        }
+        clockEnvAndTriangle();
+        if ((step == 3) and isFrameIntEnabled()) {
+            setRequestFrameIrq();
+        }
+    }
+    else {
+        if (step < 4) {
+            clockEnvAndTriangle();
+        }
+        if (step == 0 or step == 2) {
+            clockLengthAndSweep();
+        }
+    }
+    step += 1;
+    if (step == frameSteps) {
+        step = 0;
+    }
+}
+
+void Apu::stepFastTimers() 
+{
+    triangle.clockTimer();
+}
+
+void Apu::stepSlowTimers()
+{
+    pulseA.clockTimer();
+    pulseB.clockTimer();
+    noise.clockTimer();
+}
+
+
+
+void Apu::generateSample() 
+{
+    //float sample = (samples[sampleOffset % sampleBufferSize] + samples[(sampleOffset - 32) % sampleBufferSize]) / 2;
+    float sample = 0.0f;
+    sample += 0.02051777 * (samples[sampleOffset % sampleBufferSize]);
+    sample += 0.06532911* (samples[(sampleOffset - 1) % sampleBufferSize]);
+    sample += 0.16640572* (samples[(sampleOffset  - 2)% sampleBufferSize]);
+    sample += 0.2477474 * (samples[(sampleOffset  - 3)% sampleBufferSize]);
+    sample += 0.2477474 * (samples[(sampleOffset  - 4)% sampleBufferSize]);
+    sample += 0.16640572* (samples[(sampleOffset  - 5) % sampleBufferSize]);
+    sample += 0.06532911* (samples[(sampleOffset  - 6) % sampleBufferSize]);
+    sample += 0.02051777 * (samples[(sampleOffset - 7 )% sampleBufferSize]);
+
+    int16_t truncSample = (int16_t)((sample - 0.5) * (1 << 14));
+    if (rb.hasEmptySpace(1)) {
+        rb.putSingle(truncSample);
+    }
+}
+
+void Apu::tick()
+{
+    // Divider logic for frame
+    if (frameDivider == 0) {
+        stepAdvance();
+    }
+    frameDivider = (frameDivider + 1) % frameCycles;
+
+    // Divider logic for timers
+    stepFastTimers();
+    if (halfTimerDivider == 0) {
+        stepSlowTimers();
+    }
+    halfTimerDivider = !halfTimerDivider;
+
+    // Sample capture
+    sampleOffset += 1;
+    float sample = 95.88f  / ((8128.0f  / (float(pulseA.getCurrentSample() + pulseB.getCurrentSample()))) + 100.0f);
+    sample += 159.79f / (100.0f + (1.0f / ((float(triangle.getCurrentSample()) / 8227.0f) + float(noise.getCurrentSample()) / 12241.0f)));
+    samples[sampleOffset % sampleBufferSize] = sample;
+
+    // Divider logic for sampling 
+    if (samplerDivider == 0) {
+        generateSample();     
+    } 
+    samplerDivider = (samplerDivider + 1) % uint32_t(cpuClk/ sampleRate);
+
+}
+
+void Apu::run(int cycles)
+{
+    for (int i = 0; i < cycles; i++) {
+        tick();
+    }
+}
+
+void Apu::writeReg(uint32_t reg, uint8_t val)
+{
+    regs[reg] = val;
+    if (reg == SOFTCLOCK) {
+        resetFrameCounter();
+    }
+    else if (reg == CONTROL_STATUS) {
+        clearRequestDmcIrq();
+        // xx what to do with the upper bits here
+        if (~val & STATUS_CHANNEL1_LENGTH) {
+            pulseA.zeroLength();
+        }
+        if (~val & STATUS_CHANNEL2_LENGTH) {
+            pulseB.zeroLength();
+        }
+        if (~val & STATUS_CHANNEL3_LENGTH) {
+            triangle.zeroLength();
+        }
+        if (~val & STATUS_CHANNEL4_LENGTH) {
+            noise.zeroLength();
+        }
+    }
+    else if (reg == CHANNEL1_LENGTH) {
+        pulseA.resetLength();
+        pulseA.resetSequencer();
+        pulseA.resetEnvelope();
+    }
+    else if (reg == CHANNEL2_LENGTH) {
+        pulseB.resetLength();
+        pulseB.resetSequencer();
+        pulseB.resetEnvelope();
+    } 
+    else if (reg == CHANNEL3_LENGTH) {
+        triangle.resetLength();
+        triangle.setHaltFlag();
+    }
+    else if (reg == CHANNEL4_LENGTH) {
+        noise.resetLength(); 
+        noise.resetEnvelope();
+    }
+}
+
+uint8_t Apu::readReg(uint32_t reg)
+{
+    uint8_t result = regs[reg];
+    if (reg == CONTROL_STATUS) {
+        clearRequestFrameIrq();
+        result = result & (STATUS_FRAME_IRQ_REQUESTED | STATUS_DMC_IRQ_REQUESTED);
+        result |= pulseA.isNonZeroLength() ? STATUS_CHANNEL1_LENGTH : 0;
+        result |= pulseB.isNonZeroLength() ? STATUS_CHANNEL2_LENGTH : 0;
+        result |= triangle.isNonZeroLength() ? STATUS_CHANNEL3_LENGTH : 0;
+        result |= noise.isNonZeroLength() ? STATUS_CHANNEL4_LENGTH : 0;
+    }
+    return result;
 }
 
 Apu::Apu(Nes *parent, Sdl *audio) :
     nes{parent},
     audio{audio},
-    cycle{0},
+    frameDivider{0},
     step{0},
+    samplerDivider{0},
     regs{0},
     fourFrameCount{0},
     fiveFrameCount{0},
@@ -313,7 +428,7 @@ Apu::Apu(Nes *parent, Sdl *audio) :
     pulseB{&regs[CHANNEL2_VOLUME_DECAY], this, false},
     triangle{&regs[CHANNEL3_LINEAR_COUNTER], this},
     noise{&regs[CHANNEL4_VOLUME_DECAY], this},
-    rb{1 << 15}
+    rb{1 << 20}
 {
     sampleRate = audio->getSampleRate(); 
     audio->registerAudioCallback(apuSdlCallback, &rb);    
@@ -323,3 +438,4 @@ Apu::~Apu()
 {
     audio->unregisterAudioCallback();
 }
+
