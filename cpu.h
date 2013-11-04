@@ -831,7 +831,6 @@ private:
     std::unordered_map<uint8_t, Cpu::Instruction, OpcodeHash> instTable = {{
         {0x00, {"BRK", 0x00, 7, &Cpu::impliedFormat<&Cpu::brkInst>}},
         {0x01, {"ORA", 0x01, 6, &Cpu::indexedIndirectFormat<&Cpu::oraInst>}},
-        /*{0x04, {"DOP", 0x04, 0, &Cpu::zeroPageFormat<&Cpu::nopInst>}},*/
         {0x05, {"ORA", 0x05, 3, &Cpu::zeroPageFormat<&Cpu::oraInst>}},
         {0x06, {"ASL", 0x06, 5, &Cpu::zeroPageFormat<&Cpu::aslInstMem>}},
         {0x08, {"PHP", 0x08, 3, &Cpu::impliedFormat<&Cpu::phpInst>}},
@@ -1055,8 +1054,7 @@ public:
         cerr << setfill(' ') << right;
         cerr << "CYC:" << dec << setw(3)  << (3 * cycle) % 341;
     }
-    inline void instTrace(const std::string& str, int bytes)
-    {
+    inline void instTrace(const std::string& str, int bytes) {
         uint32_t instPadding = 32;
         if (debug) {
             dumpPc();

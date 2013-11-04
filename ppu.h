@@ -29,6 +29,7 @@ public:
     static const uint32_t ticksPerScanline = 341;
     static const uint32_t totalScanlines = 262;
     static const uint32_t frameTime = totalScanlines * ticksPerScanline;
+    static const uint32_t frameRate = 60;
     
     static const uint32_t renderHeight = 240;
     static const uint32_t renderWidth = 256;
@@ -303,10 +304,11 @@ public:
     Ppu(const Ppu&) = delete;
     ~Ppu() {}
 private:
-    bool nmiRequested;
+    bool nmiRequested = false;
     Nes *nes;
     Sdl *sdl;
-    uint64_t cycle;
+    uint64_t cycle = 0;
+    uint64_t frame = 0;
     uint8_t regs[REG_COUNT] = {0};
     enum SpriteAttr {
         ATTR_VERT_FLIP  = 1 << 7,
