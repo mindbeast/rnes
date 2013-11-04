@@ -48,7 +48,7 @@ public:
 
     static const uint32_t patternTableSize = 0x1000;
     
-    static const uint32_t frameTimeMs = 1000 / 60;
+    static constexpr float frameTimeMs = 1000.0f / 60.0f;
     
     static const bool debug = false;
     
@@ -336,7 +336,7 @@ private:
     uint8_t xScrollOrigin = 0;
     uint8_t yScrollOrigin = 0;
     
-    uint32_t lastFrameTimeMs = 0;
+    float lastFrameTimeMs = 0.0f;
     
     bool pixelWritten[256];
     uint32_t scanlineBuffer[256];    
