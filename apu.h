@@ -391,7 +391,7 @@ class Noise {
         return cpuClk / (16.0f * (getTimerPeriod() + 1)); 
     }
     bool isShortMode() const {
-        return (regs[NOISE_FREQUENCY] & (1 << 7)) == 0;
+        return (regs[NOISE_FREQUENCY] & (1 << 7)) != 0;
     }
     bool isEnvelopeLoopSet() const {
         return (regs[NOISE_VOLUME_DECAY] & (1 << 5)) != 0;
