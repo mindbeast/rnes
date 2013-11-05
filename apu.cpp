@@ -147,10 +147,10 @@ uint16_t Noise::getNextShiftReg(uint16_t reg) const
 {
     uint16_t newBit = 0;
     if (isShortMode()) {
-        newBit = ((reg) ^ (reg >> 6)) << 15;
+        newBit = (0x1 & ((reg) ^ (reg >> 6))) << 14;
     }
     else {
-        newBit = ((reg) ^ (reg >> 1)) << 15;
+        newBit = (0x1 & ((reg) ^ (reg >> 1))) << 14;
     }
     return newBit | (reg >> 1);
 }
@@ -203,15 +203,8 @@ void Noise::clockLength()
  
 void Noise::updateSample()
 {
-    const uint16_t volume = getVolume();
-
-    // length has run out, channel is silenced
-    if (!isNonZeroLength()) {
-        currentSample = 0;
-        return;
-    }
     shiftRegister = getNextShiftReg(shiftRegister);
-    currentSample = (shiftRegister & 1) ? volume : 0;
+    currentSample = (shiftRegister & 1) ? 1 : 0;
 }
 
 void Noise::clockTimer()
@@ -229,7 +222,7 @@ void apuSdlCallback(void *data, uint8_t *stream, int len)
     int16_t *outData = (int16_t*)stream;
     uint32_t rbCount = rb->getCount(); 
     
-    std::cout << "rbCount - items: " << (int)items - rbCount << std::endl;
+    //std::cout << "items - rbCount: " << (int)items << " - " << (int)rbCount << std::endl;
 
     while (rbCount < items) {
         rbCount = rb->getCount(); 
