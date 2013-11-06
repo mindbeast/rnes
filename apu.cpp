@@ -215,19 +215,26 @@ void Noise::clockTimer()
     timerDivider = (timerDivider + 1) % getTimerPeriod();
 }
 
+/*
+static float timerGetMs()
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
+    return ts.tv_sec * 1000.0f + ts.tv_nsec / 1000000.0f;
+}
+*/
+
 void apuSdlCallback(void *data, uint8_t *stream, int len)
 {
+    //float a = timerGetMs();
     RingBuffer<int16_t> *rb = (RingBuffer<int16_t>*)data;
     uint32_t items = len / sizeof(int16_t); 
     int16_t *outData = (int16_t*)stream;
-    uint32_t rbCount = rb->getCount(); 
     
     //std::cout << "items - rbCount: " << (int)items << " - " << (int)rbCount << std::endl;
-
-    while (rbCount < items) {
-        rbCount = rb->getCount(); 
-    }
     rb->getData(outData, items);
+    //float b = timerGetMs();
+    //std::cout << "time :" << b - a << std::endl;
 }
 
 void Apu::clockLengthAndSweep()
@@ -309,8 +316,12 @@ void Apu::generateSample()
     sample += 0.02051777 * (samples[(sampleOffset - 7 )% sampleBufferSize]);
 
     int16_t truncSample = (int16_t)((sample) * (1 << 14));
-    if (rb.hasEmptySpace(1)) {
-        rb.putSingle(truncSample);
+
+    const unsigned int bufferedSamples = 128;
+    sampleBuffer.push_back(truncSample);
+    if (sampleBuffer.size() == bufferedSamples) {
+        rb.putData(sampleBuffer.data(), bufferedSamples);
+        sampleBuffer.clear();
     }
 }
 
@@ -423,7 +434,8 @@ Apu::Apu(Nes *parent, Sdl *audio) :
     pulseB{&regs[CHANNEL2_VOLUME_DECAY], this, false},
     triangle{&regs[CHANNEL3_LINEAR_COUNTER], this},
     noise{&regs[CHANNEL4_VOLUME_DECAY], this},
-    rb{1 << 20}
+    rb{1 << 16},
+    sampleBuffer{}
 {
     sampleRate = audio->getSampleRate(); 
     audio->registerAudioCallback(apuSdlCallback, &rb);    

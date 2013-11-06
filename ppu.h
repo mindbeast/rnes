@@ -48,7 +48,7 @@ public:
 
     static const uint32_t patternTableSize = 0x1000;
     
-    static constexpr float frameTimeMs = 1000.0f / 60.0f;
+    static constexpr float frameTimeMs = 1000.0f / 60.09848604129652f;
     
     static const bool debug = false;
     
@@ -267,17 +267,11 @@ public:
         return ret;
     }
 
-
     template <bool is8x8> uint8_t getColorFromPatternTable(uint16_t patternTable, int offset, uint32_t x, uint32_t y);
     void render(uint32_t scanline);
     void tick();
     
-    void run(uint32_t cpuCycle)
-    {
-        for (uint32_t i = 0; i < cpuCycle * 3; i++) {
-            tick();
-        }
-    }
+    void run(uint32_t cpuCycle);
     uint16_t vramAddrInc() {
         if (regs[CONTROL1_REG] & CONTROL_VRAM_ADDR_INC) {
             return 32;

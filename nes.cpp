@@ -235,12 +235,10 @@ int Nes::loadRom(const std::string &filename)
         uint8_t *src = (uint8_t*)rom + sizeof(NesHeader) + header->numRomBanks * cartridgeRomSize;
         memcpy(dest, src, chrRomSize);
         memcpy(dest - chrRomSize, src, chrRomSize);
-        
     }
     
     // set nametable mirroring
     verticalMirroring = (header->info[0] & 1) != 0;
-    
     
     return 0;
 }
