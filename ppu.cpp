@@ -332,23 +332,28 @@ void Ppu::tick()
     }
     else if (scanline == vblankScanelineEnd and lineClock == (ticksPerScanline - 1)) {
         sdl->renderSync();
-        float currentFrameTimeMs = frameTimeMs;
+        float currentTime = timerGetMs();
+        float diffTime = currentTime - lastFrameTimeMs;
         /*
-        if (frame % frameRate < 1000 - frameRate * frameTimeMs) {
-            currentFrameTimeMs += 1;
+        if (frame % 20  == 0) {
+            std::cout << "difftime " << diffTime << std::endl;
         }
         */
-        float currentTime = timerGetMs();
-        //std::cout << "curtime " << currentTime << std::endl;
-        float diffTime = currentTime - lastFrameTimeMs;
-        if (diffTime < currentFrameTimeMs) {
-            float waitTime = currentFrameTimeMs - diffTime;
+        if (diffTime < frameTimeMs) {
+            float waitTime = frameTimeMs - diffTime;
             sleepMs(waitTime);
         }
         lastFrameTimeMs = timerGetMs();
         frame += 1;
     }
     cycle += 1;
+}
+
+void Ppu::run(uint32_t cpuCycle)
+{
+    for (uint32_t i = 0; i < cpuCycle * 3; i++) {
+        tick();
+    }
 }
 
 void Ppu::preRender()

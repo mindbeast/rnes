@@ -40,46 +40,49 @@ static uint16_t lengthIndexToValue(uint32_t index)
     return lengthCounterLut[index];
 }
 
-template <typename T> struct RingBuffer {
+template <typename T> class RingBuffer {
     std::vector<T> buffer;
     uint32_t size;
     volatile uint64_t get, put;
     std::mutex mutex;
     std::condition_variable cv;
-    RingBuffer(uint32_t sz) : buffer(sz, 0), size{sz}, get{0}, put{0} {
+    bool hasData(uint32_t count) const {
+        return (get + count) <= put;
+    }
+    bool hasEmptySpace(uint32_t count) const {
+        return (put + count - get) <= size;
+    }
+public:
+    RingBuffer(uint32_t sz) :
+        buffer(sz, 0), size{sz}, get{0}, put{0}, mutex{}, cv{} {
         assert(isPow2(sz));
     }
     ~RingBuffer() {}
-    bool hasData(uint32_t count) {
-        return (get + count) <= put;
-    }
-    bool hasEmptySpace(uint32_t count) {
-        return (put + count - get) <= size;
-    }
     void putData(const T *in, uint32_t count) {
-        assert(hasEmptySpace(count));
-        for (uint32_t i = 0; i < count; i++) {
-            buffer[put & (size - 1)] = in[i];
-            put += 1;
+        {
+            std::unique_lock<std::mutex> lock(mutex);
+            for (uint32_t i = 0; i < count; i++) {
+                buffer[put & (size - 1)] = in[i];
+                put += 1;
+            }
         }
+        cv.notify_one();
     }
-    void putSingle(const T sample) {
-        assert(hasEmptySpace(1));
-        buffer[put & (size - 1)] = sample;
-        put += 1;
-    }
+    /*
     void dumpSamples(uint32_t samples) {
+        std::unique_lock<std::mutex> lock(mutex);
         get += samples;
     }
+    */
     void getData(T *out, uint32_t count) {
-        assert(hasData(count)); 
+        std::unique_lock<std::mutex> lock(mutex);
+        if (!hasData(count)) {
+            cv.wait(lock, [&]{ return this->hasData(count); });
+        }
         for (uint32_t i = 0; i < count; i++) {
             out[i] = buffer[get & (size - 1)];
             get += 1;
         }
-    }
-    uint32_t getCount() {
-        return put - get;
     }
 };
 
@@ -550,6 +553,7 @@ private:
     Noise noise;
 
     RingBuffer<int16_t> rb;
+    std::vector<int16_t> sampleBuffer;
 
 public:
     bool isRequestingFrameIrq() {
