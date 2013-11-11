@@ -4,6 +4,7 @@ LD       = g++
 
 ifdef RELEASE 
 CPPFLAGS   = -O3 -fno-omit-frame-pointer -ggdb -march=native
+DEFINES    := NDEBUG
 else
 CPPFLAGS   = -g
 endif
@@ -37,6 +38,7 @@ HEADERS := $(wildcard *.h)
 
 PCHS    := $(addsuffix .gch, $(HEADERS))
 PCHS    := $(addprefix $(BINDIR)/, $(PCHS))
+DEFINES := $(addprefix -D, $(DEFINES))
 
 .PHONY: all 
 
@@ -61,7 +63,7 @@ $(DEPS) : | $(BINDIR)
 
 # build rules for all source 
 $(BINDIR)/%.o : %.cpp
-	$(CPP) $(CPPFLAGS) -c $< -o $@
+	$(CPP) $(CPPFLAGS) $(DEFINES) -c $< -o $@
 
 $(BINDIR)/%.d : %.cpp
 	$(CPP) -MM $(CPPFLAGS)  -MT $(BINDIR)/$*.o $< > $@
