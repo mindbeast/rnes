@@ -111,8 +111,8 @@ class Nes {
     Apu apu;
     Controller pad;
     
-    uint16_t translateCpuWindows(uint16_t addr);
-    uint16_t translatePpuWindows(uint16_t addr);
+    uint16_t translateCpuWindows(uint16_t addr) const;
+    uint16_t translatePpuWindows(uint16_t addr) const;
     
     uint32_t spriteDmaExecute();
     void spriteDmaSetup(uint8_t val);
@@ -123,20 +123,16 @@ public:
     void vidMemWrite(uint16_t addr, uint8_t val);
     uint8_t vidMemRead(uint16_t addr);
 
-    bool isRequestingNmi()
-    {
-        return ppu.isRequestingNmi();
-    }
-    bool isRequestingInt()
-    {
-        return apu.isRequestingIrq();
-    }
+    bool isRequestingNmi();
+    bool isRequestingInt();
     
     int mapRom(const std::string &filename);
     int loadRom(const std::string &filename);
     void run();
     Nes() : sdl{}, cpu{this}, ppu{this,&sdl}, apu{this, &sdl}, pad{&sdl} {}
     ~Nes();
+    Nes& operator=(const Nes&) = delete;
+    Nes(const Nes&) = delete;
 };
 
 

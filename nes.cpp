@@ -12,7 +12,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-uint16_t Nes::translateCpuWindows(uint16_t addr)
+uint16_t Nes::translateCpuWindows(uint16_t addr) const
 {
     if (addr >= 0x800 && addr < 0x2000) {
         addr = (addr & (0x800 - 1)) + 0x800;
@@ -23,7 +23,7 @@ uint16_t Nes::translateCpuWindows(uint16_t addr)
     return addr;
 }
 
-uint16_t Nes::translatePpuWindows(uint16_t addr)
+uint16_t Nes::translatePpuWindows(uint16_t addr) const
 {
     if (addr >= 0x3000 && addr < 0x3f00) {
         addr = (addr & (0xf00 - 1)) + 0x2000;
@@ -133,6 +133,16 @@ uint8_t Nes::vidMemRead(uint16_t addr)
 {
     assert(translateCpuWindows(addr) < cpuMemorySize);
     return vidMemory[translatePpuWindows(addr)];
+}
+
+bool Nes::isRequestingNmi()
+{
+    return ppu.isRequestingNmi();
+}
+
+bool Nes::isRequestingInt()
+{
+    return apu.isRequestingIrq();
 }
 
 void Nes::run()
