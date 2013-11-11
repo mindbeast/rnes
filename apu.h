@@ -121,9 +121,6 @@ class Pulse {
     // sweep logic
     bool resetSweepDivider;
     uint8_t sweepDivider;
-    
-    float phase;
-    static constexpr float cpuClk = 1.789773 * 1.0E6;
 
     // current sample
     uint8_t currentSample;
@@ -168,9 +165,6 @@ class Pulse {
     uint16_t getTimerPeriod() const {
         return ((uint16_t)regs[PULSE_FREQUENCY] | (((uint16_t)regs[PULSE_LENGTH] & 0x7) << 8)) + 1;
     }
-    float getToneFrequency() const {
-        return cpuClk / (16.0f * (getTimerPeriod() + 1)); 
-    }
     DutyCycle getDutyCycle() const {
         return (DutyCycle)(regs[PULSE_VOLUME_DECAY] >> 6);
     }
@@ -193,7 +187,6 @@ public:
         resetEnvelopeAndDivider{true},
         resetSweepDivider{true},
         sweepDivider{0},
-        phase{0.0f},
         currentSample{0},
         timerDivider{0},
         sequencerOffset{0}
@@ -262,10 +255,6 @@ class Triangle {
     // length logic
     uint8_t lengthCounter;
     
-    // sequencer logic 
-    float phase;
-    static constexpr float cpuClk = 1.789773 * 1.0E6;
-
     // linear counter logic
     bool linearCounterHalt;
     uint8_t linearCounter;
@@ -290,9 +279,6 @@ class Triangle {
     }
     uint16_t getTimerPeriod() const {
         return ((uint16_t)regs[TRIANGLE_FREQUENCY] | (((uint16_t)regs[TRIANGLE_LENGTH] & 0x7) << 8)) + 1;
-    }
-    float getToneFrequency() const {
-        return cpuClk / (32.0f * (getTimerPeriod() + 1)); 
     }
     uint8_t getLinearCounterReload() const {
         return (regs[TRIANGLE_LINEAR_COUNTER] & ~(1 << 7));
@@ -324,7 +310,6 @@ public:
         regs{argRegs},
         apu{parent},
         lengthCounter{0},
-        phase{0.0f},
         linearCounterHalt{false},
         currentSample{0},
         timerDivider{0},
@@ -352,9 +337,6 @@ class Noise {
     // length logic
     uint8_t lengthCounter;
     
-    // sequencer logic 
-    float phase;
-
     // noise shift register
     uint16_t shiftRegister;
     
@@ -370,7 +352,6 @@ class Noise {
     uint32_t timerDivider;
 
     // constants 
-    static constexpr float cpuClk = 1.789773 * 1.0E6;
     uint16_t periodTable[16] = {
         0x004, 0x008, 0x010, 0x020,
         0x040, 0x060, 0x080, 0x0a0,
@@ -389,9 +370,6 @@ class Noise {
         uint8_t index = getTimerPeriodIndex();
         assert(index < sizeof(periodTable) / sizeof(periodTable[0]));
         return periodTable[index];
-    }
-    float getToneFrequency() const {
-        return cpuClk / (16.0f * (getTimerPeriod() + 1)); 
     }
     bool isShortMode() const {
         return (regs[NOISE_FREQUENCY] & (1 << 7)) != 0;
@@ -440,7 +418,6 @@ public:
         regs{argRegs},
         apu{parent},
         lengthCounter{0},
-        phase{0.0f},
         shiftRegister{1},
         envelope{0},
         envelopeDivider{0},
