@@ -26,6 +26,7 @@ CPP_FILES += apu.cpp
 CPP_FILES += cpu.cpp
 CPP_FILES += nes.cpp
 CPP_FILES += sdl.cpp
+CPP_FILES += mmc.cpp
 
 # targets 
 OBJS    += $(addsuffix .o, $(basename $(CPP_FILES)))
