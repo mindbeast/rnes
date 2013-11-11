@@ -537,6 +537,13 @@ private:
     // sampler divider
     uint32_t samplerDivider;
 
+    // clocks per sample
+    float clksPerSample;
+
+    // next sample
+    float currentSampleClk;
+    uint32_t nextSampleCountdown;
+
     // prior samples buffer
     static const uint32_t sampleBufferSize = 32;
     float samples[sampleBufferSize] = {0.0f};
@@ -556,13 +563,13 @@ private:
     std::vector<int16_t> sampleBuffer;
 
 public:
-    bool isRequestingFrameIrq() {
+    bool isRequestingFrameIrq() const {
         return (regs[CONTROL_STATUS] & STATUS_FRAME_IRQ_REQUESTED) != 0;
     }
-    bool isRequestingDmcIrq() {
+    bool isRequestingDmcIrq() const {
         return (regs[CONTROL_STATUS] & STATUS_DMC_IRQ_REQUESTED) != 0;
     }
-    bool isRequestingIrq() {
+    bool isRequestingIrq() const {
         return isRequestingDmcIrq() or isRequestingFrameIrq();
     }
     void setRequestFrameIrq() {
@@ -577,10 +584,10 @@ public:
     void clearRequestDmcIrq() {
         regs[CONTROL_STATUS] &= ~STATUS_DMC_IRQ_REQUESTED;
     }
-    bool isFourStepFrame() {
+    bool isFourStepFrame() const {
         return (regs[SOFTCLOCK] & (1u << 7)) == 0;
     }
-    bool isFrameIntEnabled() {
+    bool isFrameIntEnabled() const {
         return (regs[SOFTCLOCK] & (1u << 6)) == 0;
     }
     void clockLengthAndSweep();

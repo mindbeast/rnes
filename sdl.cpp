@@ -68,10 +68,10 @@ int Sdl::initAudio()
 {
     SDL_AudioSpec desired, obtained;
 
-    desired.freq = 61440;
+    desired.freq = 44100;
     desired.format = AUDIO_S16SYS;
     desired.channels = 1;
-    desired.samples = 2*5120;
+    desired.samples = 1470;
     desired.callback = callback;
     desired.userdata = this;
 

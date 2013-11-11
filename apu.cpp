@@ -300,8 +300,6 @@ void Apu::stepSlowTimers()
     noise.clockTimer();
 }
 
-
-
 void Apu::generateSample() 
 {
     //float sample = (samples[sampleOffset % sampleBufferSize] + samples[(sampleOffset - 32) % sampleBufferSize]) / 2;
@@ -317,7 +315,7 @@ void Apu::generateSample()
 
     int16_t truncSample = (int16_t)((sample) * (1 << 14));
 
-    const unsigned int bufferedSamples = 128;
+    const unsigned int bufferedSamples = 32;
     sampleBuffer.push_back(truncSample);
     if (sampleBuffer.size() == bufferedSamples) {
         rb.putData(sampleBuffer.data(), bufferedSamples);
@@ -340,22 +338,29 @@ void Apu::tick()
     }
     halfTimerDivider = !halfTimerDivider;
 
-    // Sample capture
+    // Compute output each cycle
     sampleOffset += 1;
-    /*
-    std::cerr << "pulseA: " << (int)pulseA.getCurrentSample() << " pulseB: " << (int)pulseB.getCurrentSample()
-              << " triangle: " << (int)triangle.getCurrentSample() << " noise: " << (int)noise.getCurrentSample() << std::endl;
-    */
     float sample = 95.88f  / ((8128.0f  / (float(pulseA.getCurrentSample() + pulseB.getCurrentSample()))) + 100.0f);
     sample += 159.79f / (100.0f + (1.0f / ((float(triangle.getCurrentSample()) / 8227.0f) + float(noise.getCurrentSample()) / 12241.0f)));
     samples[sampleOffset % sampleBufferSize] = sample;
 
-    // Divider logic for sampling 
-    if (samplerDivider == 0) {
+    // Determine when to sample, and sample if needed.
+    nextSampleCountdown--;
+    if (!nextSampleCountdown) {
+        float prevSampleClk = currentSampleClk;
+        currentSampleClk += clksPerSample;
+        nextSampleCountdown = (uint32_t)currentSampleClk - (uint32_t)prevSampleClk;
+        if (currentSampleClk >= float(cpuClk)) {
+            currentSampleClk = 0.0f;
+        }
         generateSample();     
+    }
+
+    /*
+    if (samplerDivider == 0) {
     } 
     samplerDivider = (samplerDivider + 1) % uint32_t(cpuClk/ sampleRate);
-
+    */
 }
 
 void Apu::run(int cycles)
@@ -437,8 +442,15 @@ Apu::Apu(Nes *parent, Sdl *audio) :
     rb{1 << 16},
     sampleBuffer{}
 {
+    // Get Current sample rate
     sampleRate = audio->getSampleRate(); 
     audio->registerAudioCallback(apuSdlCallback, &rb);    
+
+    // compute clocks per sample
+    clksPerSample = float(cpuClk) / float(sampleRate);
+
+    nextSampleCountdown = 1;
+    currentSampleClk = 0.0f;
 }
 
 Apu::~Apu()
