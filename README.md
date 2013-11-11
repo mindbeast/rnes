@@ -10,11 +10,11 @@ Very bare NES emulator for linux. Written in c++11 and using sdl for video and s
     $ cd rnes
     $ RELEASE=1 make -j8
 
-# To run:
+## To run:
     cd rnes
     ./bin/rnes -r <rom_of_your_choice>
 
-# Controls:
+## Controls:
     Start - Enter
     Select - Shift
     A - "n" key
