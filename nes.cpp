@@ -14,9 +14,11 @@
 
 uint16_t Nes::translateCpuWindows(uint16_t addr) const
 {
+    // Deal with 3 mirrors of 2k internal RAM: 0x0 - 0x7ff.
     if (addr >= 0x800 && addr < 0x2000) {
         addr = (addr & (0x800 - 1)) + 0x800;
     }
+    // Deal with 1023 mirrors of 8 bytes of PPU registers.
     if (addr >= 0x2000 && addr < 0x4000) {
         addr = (addr & (0x8 - 1)) + 0x2000;
     }
@@ -25,9 +27,11 @@ uint16_t Nes::translateCpuWindows(uint16_t addr) const
 
 uint16_t Nes::translatePpuWindows(uint16_t addr) const
 {
+    // Name table mirrors.
     if (addr >= 0x3000 && addr < 0x3f00) {
         addr = (addr & (0xf00 - 1)) + 0x2000;
     }
+    // ??
     if (addr >= 0x4000) {
         addr = addr - 0x4000;
     }
@@ -164,14 +168,6 @@ void Nes::run()
         if ((cycles % inputCycles) == 0) {
             sdl.parseInput();
         }
-        /*
-        sdl->renderSync();
-        uint32_t currentTime = timerGetMs();
-        if (currentTime - lastFrameTimeMs < frameTimeMs+1) {
-            sleepMs(frameTimeMs +1 - (currentTime - lastFrameTimeMs));
-        }
-        lastFrameTimeMs = timerGetMs();
-        */
     }
 }
 
