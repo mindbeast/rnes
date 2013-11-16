@@ -10,7 +10,7 @@ CPPFLAGS   = -g
 endif
 CPPFLAGS  += -std=c++11 -Wall
 
-LIBS += SDL
+LIBS += SDL2
 
 LDFLAGS = $(addprefix -l, $(LIBS))
 

@@ -47,20 +47,25 @@ uint32_t Sdl::getChunkSize()
 
 int Sdl::initDisplay()
 {
-    int flags;
-    const SDL_VideoInfo *info;
-    info = SDL_GetVideoInfo();
-    if (!info) {
-        return -1;
-    }
-    
-    flags = SDL_HWSURFACE | SDL_DOUBLEBUF | SDL_ASYNCBLIT;
-    display = SDL_SetVideoMode(displayWidth, displayHeight, 32, flags);
-    if (!display) {
-        return -1;
-    }
-    
-    SDL_WM_SetCaption("rnes", "rnes");
+    window = SDL_CreateWindow("rnes",
+                              SDL_WINDOWPOS_CENTERED,
+                              SDL_WINDOWPOS_CENTERED,
+                              displayWidth,
+                              displayHeight,
+                              0);
+    renderer = SDL_CreateRenderer(window,
+                                  -1, 
+                                  SDL_RENDERER_PRESENTVSYNC | 
+                                  SDL_RENDERER_ACCELERATED);
+    texture = SDL_CreateTexture(renderer,
+                                SDL_PIXELFORMAT_ARGB8888,
+                                SDL_TEXTUREACCESS_STREAMING,
+                                renderWidth,
+                                renderHeight);
+    SDL_RenderSetLogicalSize(renderer, renderWidth, renderHeight);
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+    image = new uint32_t[renderWidth * renderHeight];
+
     return 0;
 }
 
@@ -71,7 +76,7 @@ int Sdl::initAudio()
     desired.freq = 44100;
     desired.format = AUDIO_S16SYS;
     desired.channels = 1;
-    desired.samples = 1470;
+    desired.samples = 4096;
     desired.callback = callback;
     desired.userdata = this;
 
@@ -108,6 +113,23 @@ Sdl::~Sdl()
 {
     SDL_FreeSurface(display);
     SDL_CloseAudio();
+}
+
+void Sdl::setPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b)
+{
+    uint32_t pixel =  0;
+    pixel |= 255 << 24;
+    pixel |= (uint32_t)r << 16;
+    pixel |= (uint32_t)g << 8;
+    pixel |= (uint32_t)b << 0;
+    image[x + y * renderWidth] = pixel;
+}
+
+void Sdl::renderSync()
+{
+    SDL_UpdateTexture(texture, NULL, image, renderWidth * sizeof(uint32_t));
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_RenderPresent(renderer);
 }
 
 void Sdl::parseInput()

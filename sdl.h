@@ -9,7 +9,8 @@
 #ifndef __SDL_H__
 #define __SDL_H__
 
-#include <SDL/SDL.h>
+#include <SDL2/SDL.h>
+//#include <SDL2/SDL_render.h>
 #include <cassert>
 
 class Sdl {
@@ -28,6 +29,10 @@ public:
 
 private:
     SDL_Surface *display = nullptr;
+    SDL_Window *window;
+    SDL_Renderer *renderer;
+    SDL_Texture *texture;
+    uint32_t *image;
     static const int dispMultiple = 4;
     static const int renderWidth = 256;
     static const int renderHeight = 240;
@@ -48,30 +53,8 @@ public:
     ~Sdl();
 
     // Video functions
-    void preRender() {
-        SDL_LockSurface(display);
-    }
-    void postRender() {
-        SDL_UnlockSurface(display);
-    }
-    inline void setPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b)
-    {
-        assert(SDL_MUSTLOCK(display));
-        assert(display->format->BytesPerPixel == 4);
-        uint32_t color = SDL_MapRGB(display->format, r, g, b);
-        const uint32_t pitch = display->pitch / 4;
-        uint32_t * const base = (uint32_t*)display->pixels + x * dispMultiple + y * dispMultiple * pitch;
-        for (int i = 0; i < dispMultiple; i++) {
-            for (int j = 0; j < dispMultiple; j++) {
-                uint32_t *ptr = base + j + i * pitch;
-                *ptr = color;
-            }
-        }
-    }
-    void renderSync()
-    {
-        SDL_Flip(display);
-    }
+    void setPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b);
+    void renderSync();
     void parseInput();
     bool getButtonState(int button);
 
