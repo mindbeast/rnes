@@ -3,7 +3,7 @@ Very bare NES emulator for linux. Written in c++11 and using sdl for video and s
 ![alt text](http://i.imgur.com/5TjWNVa.png "Super Mario Brothers")
 
 ## Build requirements:
-    * SDL 1.2
+    * SDL 2.0
     * gcc >= 4.6
 
 ## To build:
