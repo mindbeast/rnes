@@ -27,19 +27,10 @@ public:
     
     static const uint32_t ticksPerScanline = 341;
     static const uint32_t totalScanlines = 262;
-    static const uint32_t frameTime = totalScanlines * ticksPerScanline;
-    static const uint32_t frameRate = 60;
     
     static const uint32_t renderHeight = 240;
     static const uint32_t renderWidth = 256;
     
-    static const uint32_t nameTableWidth = 32;
-    static const uint32_t nameTableHeight = 30;
-    
-    static const uint32_t attrTableWidth = 8;
-    static const uint32_t attrTableHeight = 8;
-    
-    static const uint16_t nameTableAddr = 0x2000;
     static const uint16_t backColorAddr = 0x3f00;
     
     static const uint32_t maxSpriteCount = 64;
@@ -142,13 +133,14 @@ public:
         return nesPaletteLut[memColor];
     }
     
-    uint16_t getScanline() {
+    uint16_t getScanline() const {
         return cycle / ticksPerScanline % totalScanlines;
     }
-    uint16_t getScanlineOffset() {
+    uint16_t getScanlineOffset() const {
         return cycle % ticksPerScanline;
     }
-    uint16_t getNameTableAddr() {
+    /*
+    uint16_t getNameTableAddr() const {
         uint16_t addr;
         switch (regs[CONTROL1_REG] & 0x3) {
             case 0: addr = 0x2000; break;
@@ -158,20 +150,27 @@ public:
         }
         return addr;
     }
-    uint16_t getSpritePatternTableAddr() {
+    */
+    uint16_t getSpritePatternTableAddr() const {
         return (regs[CONTROL1_REG] & CONTROL_PATTERN_TABLE_ADDR_SPR) ? 0x1000 : 0x0;
     }
-    uint16_t getBgPatternTableAddr() {
+    uint16_t getBgPatternTableAddr() const {
         return (regs[CONTROL1_REG] & CONTROL_PATTERN_TABLE_ADDR_SCR) ? 0x1000 : 0x0;
     }
-    bool nmiOnVblank() {
+    bool nmiOnVblank() const {
         return (regs[CONTROL1_REG] & CONTROL_NMI_ON_VBLANK) != 0;
     }
-    bool isSpriteSize8x8() {
+    bool isSpriteSize8x8() const {
         return (regs[CONTROL1_REG] & CONTROL_SPRITE_SIZE) == 0;
     }
-    bool isMonochromeMode() {
+    bool isMonochromeMode() const {
         return (regs[CONTROL2_REG] & CONTROL2_MONOCHROME_MODE) != 0;
+    }
+    bool renderBackgroundEnabled() const {
+        return (regs[CONTROL2_REG] & CONTROL2_BKGD_VISIBLE) != 0;
+    }
+    bool renderSpritesEnabled() const {
+        return (regs[CONTROL2_REG] & CONTROL2_SPRITE_VISIBLE) != 0;
     }
     void setSprite0Hit() {
         regs[STATUS_REG] |= STATUS_SPRITE0_HIT;
@@ -190,23 +189,11 @@ public:
         nmiRequested = false;
         return ret;
     }
-    bool renderBackgroundEnabled() {
-        return (regs[CONTROL2_REG] & CONTROL2_BKGD_VISIBLE) != 0;
-    }
-    bool renderSpritesEnabled() {
-        return (regs[CONTROL2_REG] & CONTROL2_SPRITE_VISIBLE) != 0;
-    }
     void setVblankFlag() {
         regs[STATUS_REG] |= STATUS_VBLANK_HIT;
     }
     void clearVblankFlag() {
         regs[STATUS_REG] &= ~STATUS_VBLANK_HIT;
-    }
-    uint8_t getNameTable(uint32_t x, uint32_t y) {
-        uint16_t nameTableAddr = getNameTableAddr();
-        assert(x < 32);
-        assert(y < 30);
-        return load(nameTableAddr + nameTableWidth * y + x);
     }
     void vramCoarseXInc() {
         if ((vramCurrentAddr & 0x1f) == 31) {
@@ -246,13 +233,13 @@ public:
     void vramYReset() {
         vramCurrentAddr = (vramCurrentAddr & ~0xfbe0) | (vramTempAddr & 0xfbe0);
     }
-    uint16_t getTileAddr(uint16_t vramCurrent) {
+    uint16_t getTileAddr(uint16_t vramCurrent) const {
         return 0x2000 | (vramCurrent & 0xfff);
     }
-    uint32_t getFineY(uint16_t vramCurrent) {
+    uint32_t getFineY(uint16_t vramCurrent) const {
         return (0x7000 & vramCurrent) >> 12;
     }
-    uint16_t getAttrAddr(uint16_t vramCurrent) {
+    uint16_t getAttrAddr(uint16_t vramCurrent) const {
         return 0x23c0 | (vramCurrent & 0xc00) | ((vramCurrent >> 4) & 0x38) | ((vramCurrent >> 2) & 0x7);
     }
     uint16_t loadPatternTile(uint16_t addr) {
@@ -271,7 +258,7 @@ public:
     void tick();
     
     void run(uint32_t cpuCycle);
-    uint16_t vramAddrInc() {
+    uint16_t getVramAddrInc() const {
         if (regs[CONTROL1_REG] & CONTROL_VRAM_ADDR_INC) {
             return 32;
         }
