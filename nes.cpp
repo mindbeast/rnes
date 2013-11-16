@@ -7,6 +7,7 @@
 //
 
 #include "nes.h"
+#include "mmc.h"
 #include <unistd.h>
 #include <sys/mman.h>
 #include <fcntl.h>
@@ -92,7 +93,7 @@ uint16_t Nes::translatePpuWindows(uint16_t addr) const
     }
     
     // Nametable mappings are rom dependent
-    if (!verticalMirroring) {
+    if (!mmc->isVerticalMirror()) {
         if (addr >= nameTable1 && addr < nameTable2) {
             addr = (addr & (nameTableSize - 1)) + nameTable0;
         }
@@ -134,7 +135,10 @@ void Nes::spriteDmaSetup(uint8_t val)
 void Nes::cpuMemWrite(uint16_t addr, uint8_t val)
 {
     addr = translateCpuWindows(addr);
-    if (addr >= ppuRegBase && addr <= ppuRegEnd) {
+    if (addr < 0x800) {
+        cpuMemory[addr] = val;
+    }
+    else if (addr >= ppuRegBase && addr <= ppuRegEnd) {
         ppu.writeReg(addr - ppuRegBase, val);
     }
     else if (addr == spriteDmaAddr) {
@@ -147,14 +151,17 @@ void Nes::cpuMemWrite(uint16_t addr, uint8_t val)
         apu.writeReg(addr - apuRegBase, val);
     }
     else {
-        cpuMemory[addr] = val;
+        mmc->cpuMemWrite(addr, val);
     }
 }
 
 uint8_t Nes::cpuMemRead(uint16_t addr)
 {
     addr = translateCpuWindows(addr);
-    if (addr >= ppuRegBase && addr <= ppuRegEnd) {
+    if (addr < 0x800) {
+        return cpuMemory[addr];
+    }
+    else if (addr >= ppuRegBase && addr <= ppuRegEnd) {
         return ppu.readReg(addr - ppuRegBase);
     }
     else if (addr == joypadAddr) {
@@ -164,20 +171,32 @@ uint8_t Nes::cpuMemRead(uint16_t addr)
         return apu.readReg(addr - apuRegBase);
     }
     else {
-        return cpuMemory[addr];
+        return mmc->cpuMemRead(addr);
     }
 }
 
 void Nes::vidMemWrite(uint16_t addr, uint8_t val)
 {
-    assert(translatePpuWindows(addr) < videoMemorySize);
-    vidMemory[translatePpuWindows(addr)] = val;
+    addr = translatePpuWindows(addr);
+    assert(addr < videoMemorySize);
+    if (addr < 0x3000) {
+        mmc->vidMemWrite(addr, val);
+    }
+    else {
+        vidMemory[addr] = val;
+    }
 }
 
 uint8_t Nes::vidMemRead(uint16_t addr)
 {
-    assert(translateCpuWindows(addr) < cpuMemorySize);
-    return vidMemory[translatePpuWindows(addr)];
+    addr = translatePpuWindows(addr);
+    assert(addr < videoMemorySize);
+    if (addr < 0x3000) {
+        return mmc->vidMemRead(addr);
+    }
+    else {
+        return vidMemory[addr];
+    }
 }
 
 bool Nes::isRequestingNmi()
@@ -216,7 +235,9 @@ struct NesHeader {
     char str[4]; // ? "NES^Z"
     uint8_t numRomBanks;   // number of 16kb ROM banks
     uint8_t numVRomBanks;  // num of vrom banks
-    uint8_t info[4];
+    uint8_t info[2];
+    uint8_t numPrgRamBanks;
+    uint8_t info2;
     uint8_t reserved[6];
 } __attribute__((packed));
 
@@ -259,13 +280,43 @@ int Nes::loadRom(const std::string &filename)
     std::cerr << "Loading rom.. " << std::endl;
     std::cerr << "rom banks: " << (int)header->numRomBanks << std::endl;
     std::cerr << "vrom banks: " << (int)header->numVRomBanks << std::endl;
+    std::cerr << "ram banks: " << (int)header->numPrgRamBanks << std::endl;
     if (header->info[0] & (1 << 2)) {
         std::cerr << "trainer present" << std::endl;
     }
     uint8_t mapper = (header->info[0] & 0xf0) >> 4;
     mapper |= (header->info[1] & 0xf0);
     std::cerr << "mapper: " << (int)mapper << std::endl;
+
+
+    std::vector<uint8_t*> prgRoms;
+    std::vector<uint8_t*> chrRoms;
+
+    uint8_t *prgRomBase = (uint8_t*)rom + sizeof(NesHeader);
+    for (int i = 0; i < header->numRomBanks; i++) {
+        std::cerr << "loading rom section " << std::endl;
+        uint8_t *prgRom  = prgRomBase + i * prgRomSize;
+        prgRoms.push_back(prgRom);
+    }
+
+    uint8_t *chrRomBase = prgRomBase + header->numRomBanks * prgRomSize;
+    for (int i = 0; i < header->numVRomBanks; i++) {
+        uint8_t *chrRom = chrRomBase + i * chrRomSize;
+        chrRoms.push_back(chrRom);
+    }
+
+    bool verticalMirroring = (header->info[0] & 1) != 0;
+    switch (mapper) {
+        case 0:
+            mmc = new MmcNone(prgRoms, chrRoms, header->numPrgRamBanks, verticalMirroring);
+            break;
+        default:
+            assert(0);
+            break;
+    }
+
     
+    /*
     assert(header->numRomBanks == 1 || header->numRomBanks == 2);
     uint16_t romBase = (header->numRomBanks == 2) ? cartridgeRomBase : cartridgeRomBase + cartridgeRomSize;
     for (int i = 0; i < header->numRomBanks && i < 2; i++) {
@@ -286,6 +337,7 @@ int Nes::loadRom(const std::string &filename)
     
     // set nametable mirroring
     verticalMirroring = (header->info[0] & 1) != 0;
+    */
     
     return 0;
 }
