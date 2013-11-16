@@ -13,7 +13,7 @@
 #include "cpu.h"
 #include "apu.h"
 #include "sdl.h"
-#include "sdl.h"
+#include "mmc.h"
 
 
 class Controller {
@@ -36,12 +36,17 @@ public:
 class Nes {
     static const uint32_t cpuMemorySize = 1 << 16;
     static const uint32_t videoMemorySize = 1 << 14;
+
+    static const uint16_t prgRomSize = 16384;
+    static const uint16_t chrRomSize = 8192;
     
+    /*
     static const uint16_t cartridgeRomBase = 0x8000;
     static const uint16_t cartridgeRomSize = 0x4000;
     
     static const uint16_t chrRomBase = 0x0000;
     static const uint16_t chrRomSize = 0x2000;
+    */
     
     static const uint32_t spriteDmaCycleEnd = 512;
     static const uint16_t spriteDmaAddr = 0x4014;
@@ -63,7 +68,6 @@ class Nes {
     uint8_t vidMemory[videoMemorySize] = {0};
     uint8_t cpuMemory[cpuMemorySize] = {0};
     
-    bool verticalMirroring;
     void *rom;
     size_t romSize;
     
@@ -78,6 +82,7 @@ class Nes {
     Ppu ppu;
     Apu apu;
     Controller pad;
+    Mmc *mmc;
     
     uint16_t translateCpuWindows(uint16_t addr) const;
     uint16_t translatePpuWindows(uint16_t addr) const;
