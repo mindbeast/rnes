@@ -16,7 +16,6 @@
 #include <sstream>
 #include <iomanip>
 #include <cassert>
-#include <SDL/SDL.h>
 
 class Nes;
 class Sdl;
@@ -283,9 +282,6 @@ public:
     
     uint8_t load(uint16_t addr);
     void store(uint16_t addr, uint8_t val);
-    
-    void preRender();
-    void postRender();
     void setPixel(int x, int y, uint32_t color);
     
     void writeReg(uint32_t reg, uint8_t val);

@@ -288,11 +288,9 @@ void Ppu::render(uint32_t scanline)
     
     
     // dump pixels to display
-    preRender();
     for (uint32_t i = 0; i < renderWidth; i++) {
         setPixel(i, scanline, scanlineBuffer[i]);
     }
-    postRender();
 }
 
 
@@ -354,16 +352,6 @@ void Ppu::run(uint32_t cpuCycle)
     for (uint32_t i = 0; i < cpuCycle * 3; i++) {
         tick();
     }
-}
-
-void Ppu::preRender()
-{
-    sdl->preRender();
-}
-
-void Ppu::postRender()
-{
-    sdl->postRender();
 }
 
 void Ppu::setPixel(int x, int y, uint32_t color)
