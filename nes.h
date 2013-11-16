@@ -25,41 +25,9 @@ class Controller {
 public:
     Controller(Sdl *inpt) : sdl{inpt} {}
     ~Controller() {}
-    void setShiftReg() {
-        sdl->parseInput();
-        shiftReg = 0;
-        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_A) ? 1u : 0u)      << 0;
-        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_B) ? 1u : 0u)      << 1;
-        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_SELECT) ? 1u : 0u) << 2;
-        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_START) ? 1u : 0u)  << 3;
-        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_UP) ? 1u : 0u)     << 4;
-        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_DOWN) ? 1u : 0u)   << 5;
-        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_LEFT) ? 1u : 0u)   << 6;
-        shiftReg |= (sdl->getButtonState(Sdl::BUTTON_RIGHT) ? 1u : 0u)  << 7;
-        
-        if (debug) {
-            std::cerr << "shiftReg: " << std::hex << (int)shiftReg << "\n";
-        }
-    }
-    void write(uint8_t val) {
-        if ((control & 0x1) and !(val & 0x1)) {
-            setShiftReg();
-        }
-        control = val;
-    }
-    uint8_t read() {
-        if (control & 0x1) {
-            sdl->parseInput();
-            return (sdl->getButtonState(Sdl::BUTTON_A) ? 1u : 0u)    << 0;
-        }
-        else {
-            uint8_t ret = 0;
-            ret |= shiftReg & 0x1;
-            shiftReg >>= 1;
-            shiftReg |= 1u << 7;
-            return ret;
-        }
-    }
+    void setShiftReg();
+    void write(uint8_t val);
+    uint8_t read();
     
     Controller(const Controller&) = delete;
     Controller operator=(const Controller&) = delete;
