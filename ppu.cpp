@@ -91,7 +91,7 @@ void Ppu::writeReg(uint32_t reg, uint8_t val)
             break;
         case VRAM_DATA_REG:
             nes->vidMemWrite(vramCurrentAddr, val);
-            vramCurrentAddr += vramAddrInc();
+            vramCurrentAddr += getVramAddrInc();
             break;
         default:
             assert(0);
@@ -141,7 +141,7 @@ uint8_t Ppu::readReg(uint32_t reg)
         case VRAM_DATA_REG:
             ret = vramReadLatch;
             vramReadLatch = nes->vidMemRead(vramCurrentAddr);
-            vramCurrentAddr += vramAddrInc();
+            vramCurrentAddr += getVramAddrInc();
             return ret;
             break;
         default:
