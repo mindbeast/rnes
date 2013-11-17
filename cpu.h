@@ -178,17 +178,18 @@ private:
     // adds value from memory/immediate to a
     void adcInst(uint16_t addr)
     {
-        uint16_t result = a + load(addr) + (getFlag(CARRY) ? 1 : 0);
+        uint8_t v = load(addr);
+        uint16_t result = a + v + (getFlag(CARRY) ? 1 : 0);
         if (result & (1u << 8)) {
             setFlag(CARRY);
         }
         else {
             clearFlag(CARRY);
         }
-        if (isNeg((uint8_t)result) && isPos(a) && isPos(load(addr))) {
+        if (isNeg((uint8_t)result) && isPos(a) && isPos(v)) {
             setFlag(OVERFL);
         }
-        else if (isPos((uint8_t)result) && isNeg((a) && isNeg(load(addr)))) {
+        else if (isPos((uint8_t)result) && isNeg((a) && isNeg(v))) {
             setFlag(OVERFL);
         }
         else {
@@ -248,20 +249,21 @@ private:
         }
     }
     void bitInst(uint16_t addr) {
-        bool zero = (a & load(addr)) == 0;
+        uint8_t v = load(addr);
+        bool zero = (a & v) == 0;
         if (zero) {
             setFlag(ZERO);
         }
         else {
             clearFlag(ZERO);
         }
-        if (load(addr) & (1 << 7)) {
+        if (v & (1 << 7)) {
             setFlag(NEGATIVE);
         }
         else {
             clearFlag(NEGATIVE);
         }
-        if (load(addr) & (1 << 6)) {
+        if (v & (1 << 6)) {
             setFlag(OVERFL);
         }
         else {
@@ -320,10 +322,11 @@ private:
     }
     // helper
     void cmp(uint16_t addr, uint8_t val) {
+        uint8_t v = load(addr);
         uint8_t result;
-        result = val - load(addr);
+        result = val - v;
         setZeroAndNeg(result);
-        if (val >= load(addr)) {
+        if (val >= v) {
             setFlag(CARRY);
         }
         else {
@@ -533,8 +536,9 @@ private:
     }
     
     void sbcInst(uint16_t addr) {
-        int16_t sresult = (int16_t)(int8_t)a - (int16_t)(int8_t)load(addr) - (getFlag(CARRY) ? 0 : 1);
-        int16_t uresult = (int16_t)a - (int16_t)load(addr) - (getFlag(CARRY) ? 0 : 1);
+        uint8_t v = load(addr);
+        int16_t sresult = (int16_t)(int8_t)a - (int16_t)(int8_t)v - (getFlag(CARRY) ? 0 : 1);
+        int16_t uresult = (int16_t)a - (int16_t)v - (getFlag(CARRY) ? 0 : 1);
         
         if (uresult >= 0) {
             setFlag(CARRY);
@@ -550,8 +554,21 @@ private:
         }
         a = (uint8_t)uresult;
         setZeroAndNeg(a);
-        
     }
+
+    // undocumented instruction for zelda - no idea if this is correct.
+    void dcpInst(uint16_t addr) {
+        uint8_t result = load(addr) - 1;
+        //setZeroAndNeg(result);
+        store(addr, result);
+        if (x >= result) {
+            setFlag(CARRY);
+        }
+        else {
+            clearFlag(CARRY);
+        }
+    }
+
     // set carry flag
     void secInst(uint16_t) {
         setFlag(CARRY);
@@ -960,6 +977,7 @@ private:
         {0xd1, {"CMP", 0xd1, 5, &Cpu::indirectIndexedFormat<&Cpu::cmpInst>}},
         {0xd5, {"CMP", 0xd5, 4, &Cpu::zeroPageXFormat<&Cpu::cmpInst>}},
         {0xd6, {"DEC", 0xd6, 6, &Cpu::zeroPageXFormat<&Cpu::decInst>}},
+        {0xd7, {"DCP", 0xd7, 6, &Cpu::zeroPageXFormat<&Cpu::dcpInst>}},
         {0xd8, {"CLD", 0xd8, 2, &Cpu::impliedFormat<&Cpu::cldInst>}},
         {0xd9, {"CMP", 0xd9, 4, &Cpu::absoluteYFormat<&Cpu::cmpInst>}},
         {0xdd, {"CMP", 0xdd, 4, &Cpu::absoluteXFormat<&Cpu::cmpInst>}},
