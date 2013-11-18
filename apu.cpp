@@ -431,6 +431,7 @@ Apu::Apu(Nes *parent, Sdl *audio) :
     audio{audio},
     frameDivider{0},
     step{0},
+    halfTimerDivider{0},
     samplerDivider{0},
     regs{0},
     fourFrameCount{0},
