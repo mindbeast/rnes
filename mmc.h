@@ -39,6 +39,7 @@ class MmcNone : public Mmc {
     std::vector<uint8_t*> charRoms;
     uint32_t numPrgRam;
     bool verticalMirror;
+
 public:
     MmcNone() = delete;
     MmcNone(const std::vector<uint8_t*>& prgRoms,
@@ -54,7 +55,50 @@ public:
 };
 
 class Mmc1 : public Mmc {
-    
+    uint8_t cpuSram[prgSramSize] = {0};
+    uint8_t vidSram[0x1000 + 0x2000] = {0};
+    std::vector<uint8_t*> progRoms;
+    std::vector<uint8_t*> charRoms;
+    uint32_t numPrgRam;
+    bool verticalMirror;
+
+    // mmc1 internal registers
+    uint8_t controlReg = 0x1c;
+    uint8_t chr0Bank = 0;
+    uint8_t chr1Bank = 0;
+    uint8_t prgBank = 0;
+    uint8_t shiftRegister = 0;
+    uint32_t writeNumber;
+
+    static const uint16_t shiftWriteAddr = 0x8000;
+    static const uint16_t shiftWriteAddrLimit = 0xffff;
+    static const uint8_t shiftInit = 1 << 4;
+
+    void updateMmcRegister(uint16_t addr, uint8_t shiftRegister);
+    uint32_t getPrgRomMode() const {
+        return (controlReg >> 2) & 0x3;
+    }
+    uint32_t getMirroringMode() const {
+        return controlReg & 0x3;
+    }
+    uint32_t getChrRomMode() const {
+        return (controlReg >> 4) & 0x1;
+    }
+    bool isPrgSramEnabled() const {
+        return (controlReg & (1 << 4)) != 0;
+    }
+public:
+    Mmc1() = delete;
+    Mmc1(const std::vector<uint8_t*>& prgRoms,
+            const std::vector<uint8_t*>& chrRoms,
+            uint32_t prgRam,
+            bool verticalMirror);
+    ~Mmc1();
+    void cpuMemWrite(uint16_t addr, uint8_t val);
+    uint8_t cpuMemRead(uint16_t addr);
+    void vidMemWrite(uint16_t addr, uint8_t val);
+    uint8_t vidMemRead(uint16_t addr);
+    bool isVerticalMirror();
 };
 
 #endif 

@@ -182,6 +182,7 @@ public:
         regs{argRegs},
         primary{primaryPulse},
         apu{parent},
+        lengthCounter{0},
         envelope{0},
         envelopeDivider{0},
         resetEnvelopeAndDivider{true},
@@ -311,6 +312,7 @@ public:
         apu{parent},
         lengthCounter{0},
         linearCounterHalt{false},
+        linearCounter{0},
         currentSample{0},
         timerDivider{0},
         sequencerOffset{0}
@@ -524,7 +526,7 @@ private:
     // prior samples buffer
     static const uint32_t sampleBufferSize = 32;
     float samples[sampleBufferSize] = {0.0f};
-    uint64_t sampleOffset;
+    uint64_t sampleOffset = 0;
 
     uint8_t regs[REG_COUNT] = {0};
     uint32_t sampleRate;
