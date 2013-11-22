@@ -40,24 +40,10 @@ class Nes {
     static const uint16_t prgRomSize = 16384;
     static const uint16_t chrRomSize = 8192;
     
-    /*
-    static const uint16_t cartridgeRomBase = 0x8000;
-    static const uint16_t cartridgeRomSize = 0x4000;
-    
-    static const uint16_t chrRomBase = 0x0000;
-    static const uint16_t chrRomSize = 0x2000;
-    */
-    
     static const uint32_t spriteDmaCycleEnd = 512;
     static const uint16_t spriteDmaAddr = 0x4014;
     
     static const uint16_t joypadAddr = 0x4016;
-    
-    static const uint16_t nameTable0 = 0x2000;
-    static const uint16_t nameTable1 = 0x2400;
-    static const uint16_t nameTable2 = 0x2800;
-    static const uint16_t nameTable3 = 0x2c00;
-    static const uint16_t nameTableSize = 0x400;
     
     static const uint16_t ppuRegBase = 0x2000;
     static const uint16_t ppuRegEnd = ppuRegBase + Ppu::REG_COUNT - 1;
