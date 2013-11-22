@@ -91,24 +91,6 @@ uint16_t Nes::translatePpuWindows(uint16_t addr) const
     else if (addr == 0x3f1c) {
         addr = 0x3f0c;
     }
-    
-    // Nametable mappings are rom dependent
-    if (!mmc->isVerticalMirror()) {
-        if (addr >= nameTable1 && addr < nameTable2) {
-            addr = (addr & (nameTableSize - 1)) + nameTable0;
-        }
-        else if (addr >= nameTable3 && addr < (nameTable3 + nameTableSize)) {
-            addr = (addr & (nameTableSize - 1)) + nameTable2;
-        }
-    }
-    else {
-        if (addr >= nameTable3 && addr < (nameTable3 + nameTableSize)) {
-            addr = (addr & (nameTableSize - 1)) + nameTable1;
-        }
-        else if (addr >= nameTable2 && addr < nameTable3) {
-            addr = (addr & (nameTableSize - 1)) + nameTable0;
-        }
-    }
     return addr;
 }
 
@@ -179,24 +161,14 @@ void Nes::vidMemWrite(uint16_t addr, uint8_t val)
 {
     addr = translatePpuWindows(addr);
     assert(addr < videoMemorySize);
-    if (addr < 0x3000) {
-        mmc->vidMemWrite(addr, val);
-    }
-    else {
-        vidMemory[addr] = val;
-    }
+    mmc->vidMemWrite(addr, val);
 }
 
 uint8_t Nes::vidMemRead(uint16_t addr)
 {
     addr = translatePpuWindows(addr);
     assert(addr < videoMemorySize);
-    if (addr < 0x3000) {
-        return mmc->vidMemRead(addr);
-    }
-    else {
-        return vidMemory[addr];
-    }
+    return mmc->vidMemRead(addr);
 }
 
 bool Nes::isRequestingNmi()
@@ -317,31 +289,6 @@ int Nes::loadRom(const std::string &filename)
             assert(0);
             break;
     }
-
-    
-    /*
-    assert(header->numRomBanks == 1 || header->numRomBanks == 2);
-    uint16_t romBase = (header->numRomBanks == 2) ? cartridgeRomBase : cartridgeRomBase + cartridgeRomSize;
-    for (int i = 0; i < header->numRomBanks && i < 2; i++) {
-        std::cerr << "loading rom section " << std::endl;
-        uint8_t *dest = &cpuMemory[romBase + i * cartridgeRomSize];
-        uint8_t *src = (uint8_t*)rom + sizeof(NesHeader) + i * cartridgeRomSize;
-        memcpy(dest, src, cartridgeRomSize);
-    }
-    
-    assert(header->numVRomBanks == 1 || header->numVRomBanks == 0);
-    if (header->numVRomBanks == 1)
-    {
-        uint8_t *dest = &vidMemory[chrRomBase + chrRomSize];
-        uint8_t *src = (uint8_t*)rom + sizeof(NesHeader) + header->numRomBanks * cartridgeRomSize;
-        memcpy(dest, src, chrRomSize);
-        memcpy(dest - chrRomSize, src, chrRomSize);
-    }
-    
-    // set nametable mirroring
-    verticalMirroring = (header->info[0] & 1) != 0;
-    */
-    
     return 0;
 }
 

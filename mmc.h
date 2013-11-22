@@ -21,6 +21,15 @@ static const uint16_t mmcVidAddrSize = 0x2000;
 static const uint16_t prgSramBase = 0x6000;
 static const uint16_t prgSramSize = 0x2000;
 
+static const uint16_t nameTable0 = 0x2000;
+static const uint16_t nameTable1 = 0x2400;
+static const uint16_t nameTable2 = 0x2800;
+static const uint16_t nameTable3 = 0x2c00;
+static const uint16_t nameTableSize = 0x400;
+
+static const uint32_t cpuMemorySize = 1 << 16;
+static const uint32_t videoMemorySize = 1 << 14;
+
 class Mmc {
 public:
     Mmc() {}
@@ -29,12 +38,17 @@ public:
     virtual uint8_t cpuMemRead(uint16_t addr) = 0;
     virtual void vidMemWrite(uint16_t addr, uint8_t val) = 0;
     virtual uint8_t vidMemRead(uint16_t addr) = 0;
-    virtual bool isVerticalMirror() = 0;
+
+protected:
+    static const bool debug = true;
+    uint16_t translateVerticalMirror(uint16_t addr);
+    uint16_t translateHorizMirror(uint16_t addr);
+    uint16_t translateSingleMirror(uint16_t addr);
 };
 
 class MmcNone : public Mmc {
     uint8_t cpuSram[prgSramSize] = {0};
-    uint8_t vidSram[0x1000] = {0};
+    uint8_t vidSram[videoMemorySize] = {0};
     std::vector<uint8_t*> progRoms;
     std::vector<uint8_t*> charRoms;
     uint32_t numPrgRam;
@@ -51,16 +65,15 @@ public:
     uint8_t cpuMemRead(uint16_t addr);
     void vidMemWrite(uint16_t addr, uint8_t val);
     uint8_t vidMemRead(uint16_t addr);
-    bool isVerticalMirror();
+    uint16_t vidAddrTranslate(uint16_t addr);
 };
 
 class Mmc1 : public Mmc {
     uint8_t cpuSram[prgSramSize] = {0};
-    uint8_t vidSram[0x1000 + 0x2000] = {0};
+    uint8_t vidSram[videoMemorySize] = {0};
     std::vector<uint8_t*> progRoms;
     std::vector<uint8_t*> charRoms;
     uint32_t numPrgRam;
-    bool verticalMirror;
 
     // mmc1 internal registers
     uint8_t controlReg = 0x1c;
@@ -98,7 +111,8 @@ public:
     uint8_t cpuMemRead(uint16_t addr);
     void vidMemWrite(uint16_t addr, uint8_t val);
     uint8_t vidMemRead(uint16_t addr);
-    bool isVerticalMirror();
+    uint16_t vidAddrTranslate(uint16_t addr);
+    
 };
 
 #endif 
