@@ -40,7 +40,7 @@ public:
     virtual uint8_t vidMemRead(uint16_t addr) = 0;
 
 protected:
-    static const bool debug = true;
+    static const bool debug = false;
     uint16_t translateVerticalMirror(uint16_t addr);
     uint16_t translateHorizMirror(uint16_t addr);
     uint16_t translateSingleMirror(uint16_t addr);
