@@ -269,10 +269,23 @@ uint8_t Mmc1::cpuMemRead(uint16_t addr)
 void Mmc1::vidMemWrite(uint16_t addr, uint8_t val)
 {
     addr = vidAddrTranslate(addr);
+    bool chr8kMode = getChrRomMode() == 0;
+    if ((charRoms.size() == 0) and (addr < 0x1000)) {
+        if (chr8kMode) {
+            vidSram[addr] = val;
+        }
+        else {
+            vidSram[addr + ((chr0Bank & 0x1) ? 0x1000 : 0)] = val;
+        }
+    }
+    else if ((charRoms.size() == 0) and (addr >= 0x1000) and (addr <= 0x1fff)) {
+        if (chr8kMode) {
+            vidSram[addr] = val;
+        }
+        else {
+            vidSram[addr - 0x1000 + ((chr1Bank & 0x1) ? 0x1000 : 0)] = val;
+        }
 
-    // name table sram
-    if (charRoms.size() == 0) {
-        vidSram[addr] = val;
     }
     else if (addr >= 0x2000 and addr < 0x2000 + 0x1000) {
         vidSram[addr] = val;    
@@ -286,8 +299,8 @@ uint8_t Mmc1::vidMemRead(uint16_t addr)
 {
     addr = vidAddrTranslate(addr);
 
+    bool chr8kMode = getChrRomMode() == 0;
     if (charRoms.size() > 0) {
-        bool chr8kMode = getChrRomMode() == 0;
         // chr rom @ 0x0
         if (addr < 0x1000) {
             if (chr8kMode) {
@@ -308,7 +321,17 @@ uint8_t Mmc1::vidMemRead(uint16_t addr)
         }
     } 
     else {
-        return vidSram[addr];
+        if (chr8kMode) {
+            return vidSram[addr];
+        }
+        else {
+            if (addr < 0x1000) {
+                return vidSram[addr + (chr0Bank & 0x1) ? 0x1000 : 0];
+            }
+            if ((addr >= 0x1000) and (addr <= 0x1fff)) {
+                return vidSram[addr - 0x1000 + (chr1Bank & 0x1) ? 0x1000 : 0];
+            }
+        }
     }
 
     // name table sram
