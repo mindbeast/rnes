@@ -429,9 +429,10 @@ private:
         setZeroAndNeg(y);
     }
     void lsrInstMem(uint16_t addr) {
-        uint8_t result = load(addr) >> 1;
+        uint8_t t = load(addr);
+        uint8_t result = t >> 1;
         setZeroAndNeg(result);
-        if (load(addr) & 1) {
+        if (t & 1) {
             setFlag(CARRY);
         }
         else {
@@ -486,8 +487,9 @@ private:
         setZeroAndNeg(a);
     }
     void rolInstMem(uint16_t addr) {
-        uint8_t result = (load(addr) << 1) | (getFlag(CARRY) ? 1 : 0);
-        if (load(addr) & (1 << 7)) {
+        uint8_t t = load(addr);
+        uint8_t result = (t << 1) | (getFlag(CARRY) ? 1 : 0);
+        if (t & (1 << 7)) {
             setFlag(CARRY);
         }
         else {
@@ -508,8 +510,9 @@ private:
         setZeroAndNeg(a);
     }
     void rorInstMem(uint16_t addr) {
-        uint8_t result = (load(addr) >> 1) | (getFlag(CARRY) ? 1u << 7 : 0);
-        if (load(addr) & 1) {
+        uint8_t t = load(addr);
+        uint8_t result = (t >> 1) | (getFlag(CARRY) ? 1u << 7 : 0);
+        if (t & 1) {
             setFlag(CARRY);
         }
         else {
@@ -517,13 +520,6 @@ private:
         }
         store(addr, result);
         setZeroAndNeg(result);
-        
-        /*
-        int read = (int)load(0x4d);
-        //std::cerr << std::hex << (int)((read & (1 << 7)) != 0) << "\n";
-        std::cerr << std::hex << (int)(read) << "\n";
-         */
-
     }
     
     void rtiInst(uint16_t) {
@@ -655,9 +651,10 @@ private:
         uint16_t immediateAddr = pc + 1;
         
         if (debug) {
+            int immed = load(immediateAddr);
             std::stringstream str;
             str << std::setfill('0') << std::right;
-            str << ins.nemonic << " #$" << std::hex << std::uppercase << std::setw(2) << (int)load(immediateAddr);
+            str << ins.nemonic << " #$" << std::hex << std::uppercase << std::setw(2) << immed;
             instTrace(str.str(), 2);
         }
         pc += 2;
@@ -667,9 +664,10 @@ private:
         uint16_t zeroPageAddr = pc + 1;
         
         if (debug) {
+            int zeroPageLoad = load(zeroPageAddr);
             std::stringstream str;
             str << std::setfill('0') << std::right;
-            str << ins.nemonic << " $" << std::hex << std::uppercase << std::setw(2) << (int)load(zeroPageAddr);
+            str << ins.nemonic << " $" << std::hex << std::uppercase << std::setw(2) << zeroPageLoad;
             instTrace(str.str(), 2);
         }
         pc += 2;
@@ -679,9 +677,10 @@ private:
         uint16_t zeroPageAddr = pc + 1;
         
         if (debug) {
+            int zeroPageLoad = load(zeroPageAddr);
             std::stringstream str;
             str << std::setfill('0') << std::right;
-            str << ins.nemonic << " $" << std::hex << std::uppercase << std::setw(2) << (int)load(zeroPageAddr) << ",X";
+            str << ins.nemonic << " $" << std::hex << std::uppercase << std::setw(2) << zeroPageLoad << ",X";
             instTrace(str.str(), 2);
         }
         pc += 2;
@@ -691,9 +690,10 @@ private:
         uint16_t zeroPageAddr = pc + 1;
         
         if (debug) {
+            int zeroPageLoad = load(zeroPageAddr);
             std::stringstream str;
             str << std::setfill('0') << std::right;
-            str << ins.nemonic << " $" << std::hex << std::uppercase << std::setw(2) << (int)load(zeroPageAddr) << ",Y";
+            str << ins.nemonic << " $" << std::hex << std::uppercase << std::setw(2) << zeroPageLoad << ",Y";
             instTrace(str.str(), 2);
         }
         pc += 2;
@@ -719,12 +719,12 @@ private:
         absAddr |= ((uint16_t)load(immediateAddr + 1)) << 8;
         
         if (debug) {
+            int immed = load16(immediateAddr);
             std::stringstream str;
             str << std::setfill('0') << std::right;
-            str << ins.nemonic << " $" << std::hex << std::uppercase << std::setw(4) << (int)load16(immediateAddr);
+            str << ins.nemonic << " $" << std::hex << std::uppercase << std::setw(4) << immed;
             instTrace(str.str(), 3);
         }
-        
         pc += 3;
         (this->*fx)(absAddr);
     }
