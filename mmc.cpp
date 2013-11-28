@@ -377,6 +377,9 @@ void Mmc3::updateBankRegister(uint8_t val)
 {
     uint8_t bankSelect = getBankSelect();
     bankRegister[bankSelect] = val;
+    if (debug) {
+        std::cerr << "bank " << std::hex << (int)bankSelect << ": " << (int)val << std::endl;
+    }
 }
 
 uint16_t Mmc3::vidAddrTranslate(uint16_t addr) 
