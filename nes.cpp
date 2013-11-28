@@ -285,6 +285,9 @@ int Nes::loadRom(const std::string &filename)
         case 1:
             mmc = new Mmc1(prgRoms, chrRoms, header->numPrgRamBanks, verticalMirroring);
             break;
+        case 4:
+            mmc = new Mmc3(prgRoms, chrRoms, header->numPrgRamBanks, verticalMirroring);
+            break;
         default:
             assert(0);
             break;
