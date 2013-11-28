@@ -145,6 +145,7 @@ class Mmc3 : public Mmc {
         return (bankSelectReg & 0x7);
     }
     uint8_t *get8kPrgBank(uint32_t bank) const {
+        bank = bank & ~(1 << 6 | 1 << 7);
         return progRoms[bank >> 1] + ((bank & 1) ? 8192 : 0);
     }
     uint8_t *get2kChrBank(uint32_t bank) {
