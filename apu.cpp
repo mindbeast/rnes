@@ -440,7 +440,7 @@ Apu::Apu(Nes *parent, Sdl *audio) :
     pulseB{&regs[CHANNEL2_VOLUME_DECAY], this, false},
     triangle{&regs[CHANNEL3_LINEAR_COUNTER], this},
     noise{&regs[CHANNEL4_VOLUME_DECAY], this},
-    rb{1 << 16},
+    rb{1 << 12},
     sampleBuffer{}
 {
     // Get Current sample rate

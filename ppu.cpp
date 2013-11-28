@@ -334,6 +334,7 @@ void Ppu::tick()
     }
     else if (scanline == vblankScanelineEnd and lineClock == (ticksPerScanline - 1)) {
         sdl->renderSync();
+        /*
         float currentTime = timerGetMs();
         float diffTime = currentTime - lastFrameTimeMs;
         if (diffTime < frameTimeMs) {
@@ -341,6 +342,7 @@ void Ppu::tick()
             sleepMs(waitTime);
         }
         lastFrameTimeMs = timerGetMs();
+        */
         frame += 1;
     }
     cycle += 1;
