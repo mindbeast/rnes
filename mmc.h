@@ -81,7 +81,6 @@ class Mmc1 : public Mmc {
     uint8_t chr1Bank = 0;
     uint8_t prgBank = 0;
     uint8_t shiftRegister = 0;
-    uint32_t writeNumber;
 
     static const uint16_t shiftWriteAddr = 0x8000;
     static const uint16_t shiftWriteAddrLimit = 0xffff;
@@ -112,6 +111,77 @@ public:
     void vidMemWrite(uint16_t addr, uint8_t val);
     uint8_t vidMemRead(uint16_t addr);
     uint16_t vidAddrTranslate(uint16_t addr);
+};
+
+class Mmc3 : public Mmc {
+    uint8_t cpuSram[prgSramSize] = {0};
+    uint8_t vidSram[videoMemorySize] = {0};
+    std::vector<uint8_t*> progRoms;
+    std::vector<uint8_t*> charRoms;
+    uint32_t numPrgRam;
+
+    // internal control registers
+    uint8_t bankSelectReg = 1 << 6;
+    uint8_t mirrorReg = 0;
+    uint8_t prgRamReg = 0;
+    uint8_t bankRegister[8] = {0};
+
+    bool isPrgSramEnabled() const {
+        return (prgRamReg & (1 << 7)) != 0;
+    }
+    bool isPrgSramWriteable() const {
+        return (prgRamReg & (1 << 6)) == 0;
+    }
+    bool isLowerPrgRomSwappable() const {
+        return (bankSelectReg & (1 << 6)) == 0;    
+    }
+    bool isChrA12Inverted() const {
+        return (bankSelectReg & (1 << 7)) != 0;
+    }
+    bool isHorizMirroring() const {
+        return (mirrorReg & 0x1) != 0;
+    }
+    uint8_t getBankSelect() const {
+        return (bankSelectReg & 0x7);
+    }
+    uint8_t *get8kPrgBank(uint32_t bank) const {
+        return progRoms[bank >> 1] + ((bank & 1) ? 8192 : 0);
+    }
+    uint8_t *get2kChrBank(uint32_t bank) {
+        return get1kChrBank(bank & ~0x1);
+    }
+    uint8_t *get1kChrBank(uint32_t bank) {
+        if (charRoms.size() == 0) {
+            return vidSram + bank * 1024;
+        }
+        else {
+            return charRoms[bank >> 3] + (bank & 0x7) * 1024;
+        }
+    }
+    uint32_t get8kPrgBankCount() const {
+        return progRoms.size() * 2;
+    }
+    uint32_t get2kChrBankCount() const { 
+        return charRoms.size() * 4;
+    }
+    uint32_t get1kChrBankCount() const {
+        return charRoms.size() * 8;
+    }
+    uint16_t vidAddrTranslate(uint16_t addr);
+    void updateBankRegister(uint8_t val);
+    uint8_t *getChrPointer(uint16_t addr);
+    
+public:
+    Mmc3() = delete;
+    Mmc3(const std::vector<uint8_t*>& prgRoms,
+            const std::vector<uint8_t*>& chrRoms,
+            uint32_t prgRam,
+            bool verticalMirror);
+    ~Mmc3();
+    void cpuMemWrite(uint16_t addr, uint8_t val);
+    uint8_t cpuMemRead(uint16_t addr);
+    void vidMemWrite(uint16_t addr, uint8_t val);
+    uint8_t vidMemRead(uint16_t addr);
     
 };
 
