@@ -193,8 +193,7 @@ void Mmc1::cpuMemWrite(uint16_t addr, uint8_t val)
         cpuSram[addr - prgSramBase] = val;                
     }
     // shift register writes
-    if ((addr >= shiftWriteAddr) and 
-        (addr <= shiftWriteAddrLimit)) {
+    if ((addr >= shiftWriteAddr) and (addr <= shiftWriteAddrLimit)) {
         // initialize shift register when 7th bit is set.
         if (val & (1 << 7)) {
             shiftRegister = shiftInit;
@@ -355,5 +354,187 @@ uint16_t Mmc1::vidAddrTranslate(uint16_t addr)
         default: assert(0); 
     }
     return 0; 
+}
+
+//
+// MMC3 logic
+//
+
+Mmc3::Mmc3(const std::vector<uint8_t*> &prgRoms,
+           const std::vector<uint8_t*> &chrRoms,
+           uint32_t prgRam,
+           bool vertMirror) :
+    progRoms{prgRoms},
+    charRoms{chrRoms},
+    numPrgRam{prgRam}
+{
+    assert(numPrgRam == 0 || numPrgRam == 1);
+}
+
+Mmc3::~Mmc3() {}
+
+void Mmc3::updateBankRegister(uint8_t val)
+{
+    uint8_t bankSelect = getBankSelect();
+    bankRegister[bankSelect] = val;
+}
+
+uint16_t Mmc3::vidAddrTranslate(uint16_t addr) 
+{
+    if (isHorizMirroring()) {
+        return translateHorizMirror(addr);
+    }
+    else {
+        return translateVerticalMirror(addr);
+    }
+}
+
+void Mmc3::cpuMemWrite(uint16_t addr, uint8_t val)
+{
+    assert(addr >= mmcCpuAddrBase);
+
+    // sram region
+    if (isPrgSramEnabled() and 
+        isPrgSramWriteable() and
+        (addr >= prgSramBase) and
+        (addr < prgSramBase + prgSramSize)) {
+        cpuSram[addr - prgSramBase] = val;                
+    }
+    
+    // mmc control register writes
+    if (addr >= 0x8000 and addr <= 0x9fff) {
+        if (addr & 0x1) {
+            updateBankRegister(val); 
+        }
+        else {
+            bankSelectReg = val;
+        }          
+    }
+    else if (addr >= 0xa000 and addr <= 0xbfff) {
+        if (addr & 0x1) {
+            prgRamReg = val;
+        }
+        else {
+            mirrorReg = val;
+        }          
+    }
+    else if (addr >= 0xc000 and addr <= 0xdfff) {
+        if (addr & 0x1) {
+        }
+        else {
+        }          
+    }
+    else if (addr >= 0xe000 and addr <= 0xffff) {
+        if (addr & 0x1) {
+        }
+        else {
+        }          
+    }
+}
+
+uint8_t Mmc3::cpuMemRead(uint16_t addr)
+{
+    assert(addr >= mmcCpuAddrBase);
+
+    // sram region
+    if (isPrgSramEnabled() and
+        (addr >= prgSramBase) and
+        (addr < prgSramBase + prgSramSize)) {
+        return cpuSram[addr - prgSramBase];
+    }
+
+    // prg rom @ 0x8000
+    if ((addr >= 0x8000) and (addr < 0x8000 + 0x2000)) {
+        uint8_t bank;
+        if (isLowerPrgRomSwappable())
+            bank = bankRegister[6];
+        else
+            bank = get8kPrgBankCount() - 2;
+        return *(get8kPrgBank(bank) + addr - 0x8000);
+    }
+    // prg rom @ 0xa000
+    if ((addr >= 0xa000) and (addr < 0xa000 + 0x2000)) {
+        uint8_t bank = bankRegister[7];
+        return *(get8kPrgBank(bank) + addr - 0xa000);
+    }
+
+    // prg rom @ 0xc000
+    if ((addr >= 0xc000) and (addr <= 0xdfff)) {
+        uint8_t bank;
+        if (isLowerPrgRomSwappable())
+            bank = get8kPrgBankCount() - 2;
+        else
+            bank = bankRegister[6];
+        return *(get8kPrgBank(bank) + addr - 0xc000);
+    }
+    // prg rom @ 0xe000
+    if ((addr >= 0xe000) and (addr <= 0xffff)) {
+        return *(get8kPrgBank(get8kPrgBankCount()-1) + addr - 0xe000);
+    }
+    return 0;
+}
+
+uint8_t *Mmc3::getChrPointer(uint16_t addr)
+{
+    bool a12Invert = isChrA12Inverted(); 
+    assert(addr <= 0x1fff);
+    
+    if (a12Invert) {
+        addr ^= (1 << 12);
+    }
+    if (addr <= 0x7ff) {
+        return get2kChrBank(bankRegister[0]) + addr;
+    }
+    else if (addr >= 0x800 and addr <= 0xfff) {
+        return get2kChrBank(bankRegister[1]) + addr - 0x800;
+    }
+    else if (addr >= 0x1000 and addr <= 0x13ff) {
+        return get1kChrBank(bankRegister[2]) + addr - 0x1000;
+    }
+    else if (addr >= 0x1400 and addr <= 0x17ff) {
+        return get1kChrBank(bankRegister[3]) + addr - 0x1400;
+    }
+    else if (addr >= 0x1800 and addr <= 0x1bff) {
+        return get1kChrBank(bankRegister[4]) + addr - 0x1800;
+    }
+    else if (addr >= 0x1c00 and addr <= 0x1fff) {
+        return get1kChrBank(bankRegister[5]) + addr - 0x1c00;
+    }
+    return 0;
+}
+
+void Mmc3::vidMemWrite(uint16_t addr, uint8_t val)
+{
+    addr = vidAddrTranslate(addr);
+
+    // chr banks
+    if (charRoms.size() == 0 and addr <= 0x1fff) {
+        *getChrPointer(addr) = val;
+    }
+    else if (addr >= 0x2000 and addr < 0x2000 + 0x1000) {
+        vidSram[addr] = val;    
+    }
+    else if (addr >= 0x3f00 and addr <= 0x3f1f) {
+        vidSram[addr] = val;    
+    }
+
+}
+
+uint8_t Mmc3::vidMemRead(uint16_t addr)
+{
+    addr = vidAddrTranslate(addr);
+
+    // chr banks
+    if (addr <= 0x1fff) {
+        return *getChrPointer(addr);
+    }
+    // name table sram
+    else if ((addr >= 0x2000) and (addr <= 0x2fff)) {
+        return vidSram[addr];
+    }
+    else if (addr >= 0x3f00 and addr <= 0x3f1f) {
+        return vidSram[addr];
+    }
+    return 0;
 }
 
