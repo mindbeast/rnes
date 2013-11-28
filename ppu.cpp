@@ -155,7 +155,6 @@ uint8_t Ppu::readReg(uint32_t reg)
 template<bool is8x8> uint8_t Ppu::getColorFromPatternTable(uint16_t patternTable, int offset, uint32_t x, uint32_t y)
 {
     assert(x < 8);
-    uint32_t entrySize = is8x8 ? 16 : 32;
     if (!is8x8) {
         assert(y < 16);
         if ((offset % 2) == 0) {
@@ -163,6 +162,11 @@ template<bool is8x8> uint8_t Ppu::getColorFromPatternTable(uint16_t patternTable
         }
         else {
             patternTable = 0x1000;
+            offset--;
+        }
+        if (y >= 8) {
+            offset++;
+            y -= 8;
         }
     }
     else {
@@ -170,7 +174,7 @@ template<bool is8x8> uint8_t Ppu::getColorFromPatternTable(uint16_t patternTable
     }
     x = 8 - 1 - x;
     uint16_t byteAddrLower = patternTable + 16 * offset + y;
-    uint16_t byteAddrUpper = patternTable + 16 * offset + y + entrySize / 2 ;
+    uint16_t byteAddrUpper = patternTable + 16 * offset + y + 8;
     uint8_t color = ((load(byteAddrLower) >> x) & 0x1) | (((load(byteAddrUpper) >> (x)) & 0x1) << 1);
     return color;
 }
@@ -332,11 +336,6 @@ void Ppu::tick()
         sdl->renderSync();
         float currentTime = timerGetMs();
         float diffTime = currentTime - lastFrameTimeMs;
-        /*
-        if (frame % 20  == 0) {
-            std::cout << "difftime " << diffTime << std::endl;
-        }
-        */
         if (diffTime < frameTimeMs) {
             float waitTime = frameTimeMs - diffTime;
             sleepMs(waitTime);
