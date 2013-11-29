@@ -2,27 +2,27 @@ Very bare NES emulator for linux. Written in c++11 and using sdl for video and s
 has only been tested on a few no-mmc games, mmc1, and mmc3 games. Proven to work:
 
 No-mmc:
-    - Super Mario Brothers
-    - Tennis
-    - Pac-man
-    - Golf
-    - Donkey Kong 3
+* Super Mario Brothers
+* Tennis
+* Pac-man
+* Golf
+* Donkey Kong 3
 
 mmc1:
-    - Tetris
-    - Megan Man 2
-    - Lemmings
+* Tetris
+* Megan Man 2
+* Lemmings
 
 mmc3:
-    - Super Mario Brothers 2
-    - Super Mario Brothers 3
-    - Kirby's Adventure
-    - Final Fantasy 3
+* Super Mario Brothers 2
+* Super Mario Brothers 3
+* Kirby's Adventure
+* Final Fantasy 3
 
 Broken for unknown reasons:
-    - Zelda
-    - Metroid (probably because of ppu sprite/bg ordering issues)
-    - Final Fantasy I
+* Zelda
+* Metroid (probably because of ppu sprite/bg ordering issues)
+* Final Fantasy I
 
 ![alt text](http://i.imgur.com/5TjWNVa.png "Super Mario Brothers")
 
