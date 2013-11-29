@@ -152,29 +152,29 @@ Mmc1::~Mmc1() {}
 
 void Mmc1::updateMmcRegister(uint16_t addr, uint8_t shiftRegister)
 {
-    switch ((addr >> 13) & 0x3) {
-        case 0:
+    switch ((addr >> 13) & 0x7) {
+        case 4:
             controlReg = shiftRegister;
             if (debug) {
-                std::cerr << "mmc1: control reg: " << std::hex << (int)controlReg << std::endl;
+                std::cerr << "mmc1 " << std::hex << addr << ": control reg: " << std::hex << (int)controlReg << std::endl;
             }
             break;
-        case 1:
+        case 5:
             chr0Bank = shiftRegister;
             if (debug) {
-                std::cerr << "mmc1: chr0Bank reg: " << std::hex << (int)chr0Bank << std::endl;
+                std::cerr << "mmc1 " << std::hex << addr << ": chr0Bank reg: " << std::hex << (int)chr0Bank << std::endl;
             }
             break;
-        case 2:
+        case 6:
             chr1Bank = shiftRegister;
             if (debug) {
-                std::cerr << "mmc1: chr1Bank reg: " << std::hex << (int)chr1Bank << std::endl;
+                std::cerr << "mmc1 " << std::hex << addr << ": chr1Bank reg: " << std::hex << (int)chr1Bank << std::endl;
             }
             break;
-        case 3:
+        case 7:
             prgBank = shiftRegister;
             if (debug) {
-                std::cerr << "mmc1: chr1Bank reg: " << std::hex << (int)prgBank << std::endl;
+                std::cerr << "mmc1 " << std::hex << addr << ": prgBank reg: " << std::hex << (int)prgBank << std::endl;
             }
             break;
         default:
@@ -197,7 +197,7 @@ void Mmc1::cpuMemWrite(uint16_t addr, uint8_t val)
         // initialize shift register when 7th bit is set.
         if (val & (1 << 7)) {
             shiftRegister = shiftInit;
-            controlReg |= 0x2 << 2;
+            controlReg |= 0x3 << 2;
             if (debug) {
                 std::cerr << "mmc1: control reg reset: " << std::hex << (int)controlReg << std::endl;
             }
