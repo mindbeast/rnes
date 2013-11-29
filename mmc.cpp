@@ -423,14 +423,19 @@ void Mmc3::cpuMemWrite(uint16_t addr, uint8_t val)
     }
     else if (addr >= 0xc000 and addr <= 0xdfff) {
         if (addr & 0x1) {
+            irqCounterReg = 0; 
         }
         else {
+            irqReloadReg = val;
         }          
     }
     else if (addr >= 0xe000 and addr <= 0xffff) {
         if (addr & 0x1) {
+            irqEnabled = true; 
         }
         else {
+            irqEnabled = false;
+            irqPending = false;
         }          
     }
 }
@@ -541,3 +546,21 @@ uint8_t Mmc3::vidMemRead(uint16_t addr)
     return 0;
 }
 
+void Mmc3::notifyScanlineComplete()
+{
+    if (irqCounterReg == 0) {
+        irqCounterReg = irqReloadReg;
+    }
+    else {
+        irqCounterReg--;
+        if (irqCounterReg == 0 and irqEnabled) {
+            irqPending = true; 
+        } 
+        
+    }
+}
+
+bool Mmc3::isRequestingIrq()
+{
+    return irqEnabled and irqPending;
+}
