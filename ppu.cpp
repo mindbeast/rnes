@@ -308,6 +308,7 @@ void Ppu::tick()
     if (!isVblank and renderBackgroundEnabled()) {
         if (lineClock == 255 and scanline < 240) {
             render(scanline);
+            nes->notifyScanlineComplete();
         }
         if (lineClock == 256) {
             vramYInc();

@@ -171,6 +171,11 @@ uint8_t Nes::vidMemRead(uint16_t addr)
     return mmc->vidMemRead(addr);
 }
 
+void Nes::notifyScanlineComplete()
+{
+    mmc->notifyScanlineComplete();
+}
+
 bool Nes::isRequestingNmi()
 {
     return ppu.isRequestingNmi();
@@ -178,7 +183,7 @@ bool Nes::isRequestingNmi()
 
 bool Nes::isRequestingInt()
 {
-    return apu.isRequestingIrq();
+    return apu.isRequestingIrq() || mmc->isRequestingIrq();
 }
 
 void Nes::run()

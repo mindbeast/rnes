@@ -38,6 +38,8 @@ public:
     virtual uint8_t cpuMemRead(uint16_t addr) = 0;
     virtual void vidMemWrite(uint16_t addr, uint8_t val) = 0;
     virtual uint8_t vidMemRead(uint16_t addr) = 0;
+    virtual void notifyScanlineComplete() {}
+    virtual bool isRequestingIrq() { return false; }
 
 protected:
     static const bool debug = false;
@@ -125,6 +127,11 @@ class Mmc3 : public Mmc {
     uint8_t mirrorReg = 0;
     uint8_t prgRamReg = 0;
     uint8_t bankRegister[8] = {0};
+    uint8_t irqReloadReg = 0;
+    uint8_t irqCounterReg = 0;
+    bool irqEnabled = false;
+    bool irqPending = false;
+
 
     bool isPrgSramEnabled() const {
         return (prgRamReg & (1 << 7)) != 0;
@@ -183,6 +190,8 @@ public:
     uint8_t cpuMemRead(uint16_t addr);
     void vidMemWrite(uint16_t addr, uint8_t val);
     uint8_t vidMemRead(uint16_t addr);
+    virtual void notifyScanlineComplete();
+    virtual bool isRequestingIrq();
     
 };
 
