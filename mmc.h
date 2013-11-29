@@ -81,7 +81,7 @@ class Mmc1 : public Mmc {
     uint8_t controlReg = 0x1c;
     uint8_t chr0Bank = 0;
     uint8_t chr1Bank = 0;
-    uint8_t prgBank = 0;
+    uint8_t prgBank = 1;
     uint8_t shiftRegister = 0;
 
     static const uint16_t shiftWriteAddr = 0x8000;
@@ -99,7 +99,7 @@ class Mmc1 : public Mmc {
         return (controlReg >> 4) & 0x1;
     }
     bool isPrgSramEnabled() const {
-        return (controlReg & (1 << 4)) != 0;
+        return (prgBank & (1 << 4)) == 0;
     }
 public:
     Mmc1() = delete;
