@@ -285,12 +285,15 @@ int Nes::loadRom(const std::string &filename)
     bool verticalMirroring = (header->info[0] & 1) != 0;
     switch (mapper) {
         case 0:
+            std::cout << "Loading no mmc game." << std::endl;
             mmc = new MmcNone(prgRoms, chrRoms, header->numPrgRamBanks, verticalMirroring);
             break;
         case 1:
+            std::cout << "Loading MMC1 game." << std::endl;
             mmc = new Mmc1(prgRoms, chrRoms, header->numPrgRamBanks, verticalMirroring);
             break;
         case 4:
+            std::cout << "Loading MMC3 game." << std::endl;
             mmc = new Mmc3(prgRoms, chrRoms, header->numPrgRamBanks, verticalMirroring);
             break;
         default:
