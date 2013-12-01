@@ -6,12 +6,14 @@ No-mmc:
 * Tennis
 * Pac-man
 * Golf
+* Donkey Kong
 * Donkey Kong 3
 
 mmc1:
 * Tetris
 * Megan Man 2
 * Lemmings
+* Dr. Mario
 
 mmc3:
 * Super Mario Brothers 2
