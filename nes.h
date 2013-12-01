@@ -10,10 +10,10 @@
 #define __NES_H__
 
 #include <memory>
-#include "mmc.h"
 
 namespace Rnes {
 
+class Mmc;
 class Sdl;
 class Cpu;
 class Ppu;
