@@ -52,6 +52,27 @@ void Pulse::envelopeDividerClock()
     }
 }
 
+uint8_t Pulse::getCurrentSample() const
+{
+    // channel is silenced when period is < 8
+    const uint16_t timerPeriod = getTimerPeriod();
+    if (timerPeriod < 8) {
+        return 0;
+    }
+    // channel silenced when target is above 0x7ff
+    const uint16_t targetPeriod = computeSweepTarget();
+    if (targetPeriod > 0x7ff) {
+        return 0;
+    }
+    if (!isNonZeroLength()) {
+        return 0;
+    }
+    if (!currentSample) {
+        return 0;
+    }
+    return getVolume();
+}
+
 void Pulse::clockEnvelope()
 {
     if (resetEnvelopeAndDivider) {
@@ -174,6 +195,17 @@ void Noise::envelopeDividerClock()
     else if (isEnvelopeLoopSet()) {
         envelope = 15; 
     }
+}
+
+uint8_t Noise::getCurrentSample() const
+{
+    if (!currentSample) {
+        return 0;
+    }
+    if (!isNonZeroLength()) {
+        return 0;
+    }
+    return getVolume();
 }
 
 void Noise::clockEnvelope()

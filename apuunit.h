@@ -29,12 +29,6 @@ uint8_t lengthCounterLut[] = {
      16,  28,  32,  30
 };
 
-static uint16_t lengthIndexToValue(uint32_t index)
-{
-    assert(index < sizeof(lengthCounterLut) / sizeof(lengthCounterLut[0]));
-    return lengthCounterLut[index];
-}
-
 class Pulse {
     enum {
         PULSE_VOLUME_DECAY, // ddlDnnnn (duty cycle, loop, Disable, n)
@@ -144,7 +138,7 @@ public:
         return lengthCounter != 0;
     }
     void resetLength() {
-        lengthCounter = lengthIndexToValue(getLengthIndex());
+        lengthCounter = lengthCounterLut[getLengthIndex()];
     }
     void zeroLength() {
         lengthCounter = 0;
@@ -158,25 +152,7 @@ public:
     void resetSweep() {
         resetSweepDivider = true;
     }
-    uint8_t getCurrentSample() const {
-        // channel is silenced when period is < 8
-        const uint16_t timerPeriod = getTimerPeriod();
-        if (timerPeriod < 8) {
-            return 0;
-        }
-        // channel silenced when target is above 0x7ff
-        const uint16_t targetPeriod = computeSweepTarget();
-        if (targetPeriod > 0x7ff) {
-            return 0;
-        }
-        if (!isNonZeroLength()) {
-            return 0;
-        }
-        if (!currentSample) {
-            return 0;
-        }
-        return getVolume();
-    }
+    uint8_t getCurrentSample() const;
     void clockEnvelope();
     void clockLengthAndSweep();
     void updateSample();
@@ -236,7 +212,7 @@ public:
         return lengthCounter != 0;
     }
     void resetLength() {
-        lengthCounter = lengthIndexToValue(getLengthIndex());
+        lengthCounter = lengthCounterLut[getLengthIndex()];
     }
     void zeroLength() {
         lengthCounter = 0;
@@ -338,7 +314,7 @@ public:
         return lengthCounter != 0;
     }
     void resetLength() {
-        lengthCounter = lengthIndexToValue(getLengthIndex());
+        lengthCounter = lengthCounterLut[getLengthIndex()];
     }
     void resetEnvelope() {
         resetEnvelopeAndDivider = true;
@@ -349,15 +325,7 @@ public:
     void resetSequencer() {
         shiftRegister = 1;
     }
-    uint8_t getCurrentSample() const {
-        if (!currentSample) {
-            return 0;
-        }
-        if (!isNonZeroLength()) {
-            return 0;
-        }
-        return getVolume();
-    }
+    uint8_t getCurrentSample() const;
     Noise(uint8_t *argRegs) : 
         regs{argRegs},
         lengthCounter{0},
