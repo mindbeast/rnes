@@ -3,7 +3,7 @@ CPP      = g++
 LD       = g++
 
 ifdef RELEASE 
-CPPFLAGS   = -O3 -fno-omit-frame-pointer -ggdb -march=native
+CPPFLAGS   = -O3 -fno-omit-frame-pointer -ggdb -march=native -flto
 DEFINES    := NDEBUG
 else
 CPPFLAGS   = -g
