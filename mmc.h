@@ -14,23 +14,11 @@
 
 namespace Rnes {
 
-static const uint16_t mmcCpuAddrBase = 0x6000;
-static const uint16_t mmcCpuAddrSize = 0xa000;
-
-static const uint16_t mmcVidAddrBase = 0x0;
-static const uint16_t mmcVidAddrSize = 0x2000;
+static const uint32_t cpuMemorySize = 1 << 16;
+static const uint32_t videoMemorySize = 1 << 14;
 
 static const uint16_t prgSramBase = 0x6000;
 static const uint16_t prgSramSize = 0x2000;
-
-static const uint16_t nameTable0 = 0x2000;
-static const uint16_t nameTable1 = 0x2400;
-static const uint16_t nameTable2 = 0x2800;
-static const uint16_t nameTable3 = 0x2c00;
-static const uint16_t nameTableSize = 0x400;
-
-static const uint32_t cpuMemorySize = 1 << 16;
-static const uint32_t videoMemorySize = 1 << 14;
 
 class Mmc {
 public:
