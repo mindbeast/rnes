@@ -12,12 +12,12 @@
 #include "nes.h"
 
 // TODO:
-// - mmc1
+// - mmcs: nrom, mmc5
+// - redo sprite/bg ordering. It's currently broken.
 // - sprite0 flag
 // - clipping flags
-// - apu
+// - apu dmc channel
 // - color emphasis
-// - rename display class 
 
 using namespace std;
 
