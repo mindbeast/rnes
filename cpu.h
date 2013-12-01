@@ -206,7 +206,7 @@ private:
     
     // addressing mode dispatch functions
     typedef void (Cpu::*InstFunc)(uint16_t);
-    
+
     // instruction dispatch table
     struct Instruction;
     typedef void (Cpu::*InstDispatchFunc)(const Instruction&);
@@ -217,6 +217,7 @@ private:
         InstDispatchFunc func;
     };
     
+    // Templatized implementations of all instruction formats.
     template <InstFunc fx> void impliedFormat(const Instruction &ins);
     template <InstFunc fx> void accumFormat(const Instruction &ins);
     template <InstFunc fx> void immediateFormat(const Instruction &ins);
@@ -230,7 +231,7 @@ private:
     template <InstFunc fx> void indirectFormat(const Instruction &ins);
     template <InstFunc fx> void indexedIndirectFormat(const Instruction &ins);
     template <InstFunc fx> void indirectIndexedFormat(const Instruction &ins);
-    
+
     // Large look-up table associating opcode to instruction implementation.
     static const std::unordered_map<uint8_t, Cpu::Instruction, OpcodeHash> instTable;
     
