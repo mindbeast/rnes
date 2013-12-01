@@ -8,9 +8,12 @@
 
 #include "ppu.h"
 #include "nes.h"
-#include "time.h"
-#include "sys/time.h"
+#include "sdl.h"
+
+#include <time.h>
+#include <sys/time.h>
 #include <assert.h>
+#include <cstring>
 
 namespace Rnes {
 
