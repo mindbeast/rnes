@@ -8,6 +8,8 @@
 
 #include "sdl.h"
 
+namespace Rnes {
+
 void callback(void *userData, Uint8 *stream, int len)
 {
     Sdl *sdl = (Sdl*)userData;
@@ -136,17 +138,6 @@ void Sdl::parseInput()
 {
     SDL_Event event;
     int button;
-    /*
-
-    int keys;
-    uint8_t *keyState;
-    
-    SDL_PumpEvents();
-    keyState = SDL_GetKeyState(&keys);
-    buttonState[BUTTON_UP] = keyState[SDLK_UP];
-    buttonState[BUTTON_DOWN] = keyState[SDLK_DOWN];
-    buttonState[BUTTON_START] = keyState[SDLK_RETURN];
-    */
      
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
@@ -208,3 +199,5 @@ bool Sdl::getButtonState(int button)
 {
     return buttonState[button];
 }
+
+};

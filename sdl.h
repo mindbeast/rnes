@@ -10,8 +10,9 @@
 #define __SDL_H__
 
 #include <SDL2/SDL.h>
-//#include <SDL2/SDL_render.h>
 #include <cassert>
+
+namespace Rnes {
 
 class Sdl {
 public:
@@ -64,6 +65,8 @@ public:
     void unregisterAudioCallback();
     uint32_t getSampleRate();
     uint32_t getChunkSize();
+};
+
 };
 
 #endif

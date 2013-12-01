@@ -12,6 +12,8 @@
 #include "sys/time.h"
 #include <assert.h>
 
+namespace Rnes {
+
 static void sleepMs(float ms)
 {
     struct timespec wait = {
@@ -363,3 +365,5 @@ void Ppu::setPixel(int x, int y, uint32_t color)
     uint8_t b = 0xff & (color);
     sdl->setPixel(x, y, r, g, b);
 }
+
+};

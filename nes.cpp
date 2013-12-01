@@ -13,6 +13,8 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+namespace Rnes {
+
 void Controller::setShiftReg()
 {
     sdl->parseInput();
@@ -309,4 +311,6 @@ Nes::~Nes()
         munmap(rom, romSize);
     }
 }
+
+};
 

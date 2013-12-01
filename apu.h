@@ -16,6 +16,8 @@
 #include <mutex>
 #include <condition_variable>
 
+namespace Rnes {
+
 class Sdl;
 class Nes;
 
@@ -585,5 +587,7 @@ public:
     Apu() = delete;
     Apu(const Apu&) = delete;
     ~Apu();
+};
+
 };
 #endif

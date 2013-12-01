@@ -12,6 +12,8 @@
 #include <cstdint>
 #include <vector>
 
+namespace Rnes {
+
 static const uint16_t mmcCpuAddrBase = 0x6000;
 static const uint16_t mmcCpuAddrSize = 0xa000;
 
@@ -192,7 +194,8 @@ public:
     uint8_t vidMemRead(uint16_t addr);
     virtual void notifyScanlineComplete();
     virtual bool isRequestingIrq();
-    
+};
+
 };
 
 #endif 

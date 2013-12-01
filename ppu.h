@@ -17,6 +17,8 @@
 #include <iomanip>
 #include <cassert>
 
+namespace Rnes {
+
 class Nes;
 class Sdl;
 
@@ -317,8 +319,8 @@ private:
     
     bool pixelWritten[256];
     uint32_t scanlineBuffer[256];    
-
 };
 
+};
 
 #endif 

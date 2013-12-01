@@ -15,6 +15,7 @@
 #include "sdl.h"
 #include "mmc.h"
 
+namespace Rnes {
 
 class Controller {
     Sdl *sdl;
@@ -96,5 +97,6 @@ public:
     Nes(const Nes&) = delete;
 };
 
+};
 
 #endif
