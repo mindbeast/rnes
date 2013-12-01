@@ -15,8 +15,6 @@
 #include "cpu.h"
 #include "nes.h"
 
-namespace Rnes {
-
 // stack pointer base
 static const uint16_t base = 0x0100;
 static const uint8_t stackPointerStart = 0xfd;
@@ -32,6 +30,24 @@ static const uint16_t irqBaseAddr = 0xfffe;
 
 // max instruction length
 static const int maxInstLength = 3;
+
+// Helper functions not associated with cpu class.
+static bool isNeg(uint8_t val)
+{
+    if (val & (1 << 7)) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+static bool isPos(uint8_t val)
+{
+    return !isNeg(val);
+}
+
+namespace Rnes {
 
 const std::unordered_map<uint8_t, Cpu::Instruction, OpcodeHash>
 Cpu::instTable = {{
@@ -254,21 +270,6 @@ uint8_t Cpu::popStack()
     sp++;
     uint8_t ret = load(sp + base);
     return ret;
-}
-
-bool Cpu::isNeg(uint8_t val)
-{
-    if (val & (1 << 7)) {
-        return true;
-    }
-    else {
-        return false;
-    }
-}
-
-bool Cpu::isPos(uint8_t val)
-{
-    return !isNeg(val);
 }
 
 void Cpu::relativeBranchPenalty(uint16_t start, uint16_t end)
