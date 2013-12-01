@@ -256,6 +256,8 @@ Apu::Apu(Nes *parent, Sdl *audio) :
 
     // Get Current sample rate
     sampleRate = audio->getSampleRate(); 
+
+    // Start audio callbacks.
     audio->registerAudioCallback(apuSdlCallback, rb.get());    
 
     // compute clocks per sample
@@ -263,7 +265,6 @@ Apu::Apu(Nes *parent, Sdl *audio) :
 
     nextSampleCountdown = 1;
     currentSampleClk = 0.0f;
-
 }
 
 Apu::~Apu()
