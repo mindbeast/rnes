@@ -229,16 +229,16 @@ Apu::Apu(Nes *parent, Sdl *audio) :
     rb = std::move(rbLocal);
 
     // Create apu units.
-    std::unique_ptr<Pulse> pulseALocal(new Pulse{&regs[CHANNEL1_VOLUME_DECAY], this, true});
+    std::unique_ptr<Pulse> pulseALocal(new Pulse{&regs[CHANNEL1_VOLUME_DECAY], true});
     pulseA = std::move(pulseALocal);
 
-    std::unique_ptr<Pulse> pulseBLocal(new Pulse{&regs[CHANNEL2_VOLUME_DECAY], this, false});
+    std::unique_ptr<Pulse> pulseBLocal(new Pulse{&regs[CHANNEL2_VOLUME_DECAY], false});
     pulseB = std::move(pulseBLocal);
 
-    std::unique_ptr<Triangle> triangleLocal(new Triangle{&regs[CHANNEL3_LINEAR_COUNTER], this});
+    std::unique_ptr<Triangle> triangleLocal(new Triangle{&regs[CHANNEL3_LINEAR_COUNTER]});
     triangle = std::move(triangleLocal);
 
-    std::unique_ptr<Noise> noiseLocal(new Noise{&regs[CHANNEL4_VOLUME_DECAY], this});
+    std::unique_ptr<Noise> noiseLocal(new Noise{&regs[CHANNEL4_VOLUME_DECAY]});
     noise = std::move(noiseLocal);
 
     // Get Current sample rate
