@@ -8,6 +8,7 @@
 
 #include "apu.h"
 #include "sdl.h"
+#include "ringbuffer.h"
 #include <cmath>
 
 namespace Rnes {
@@ -235,7 +236,7 @@ void apuSdlCallback(void *data, uint8_t *stream, int len)
     
     //std::cout << "items - rbCount: " << (int)items << " - " << (int)rbCount << std::endl;
     rb->getData(outData, items);
-    //float b = timerGetMs();
+    //float b = timerGetMs()
     //std::cout << "time :" << b - a << std::endl;
 }
 
@@ -320,7 +321,7 @@ void Apu::generateSample()
     const unsigned int bufferedSamples = 32;
     sampleBuffer.push_back(truncSample);
     if (sampleBuffer.size() == bufferedSamples) {
-        rb.putData(sampleBuffer.data(), bufferedSamples);
+        rb->putData(sampleBuffer.data(), bufferedSamples);
         sampleBuffer.clear();
     }
 }
@@ -442,18 +443,22 @@ Apu::Apu(Nes *parent, Sdl *audio) :
     pulseB{&regs[CHANNEL2_VOLUME_DECAY], this, false},
     triangle{&regs[CHANNEL3_LINEAR_COUNTER], this},
     noise{&regs[CHANNEL4_VOLUME_DECAY], this},
-    rb{1 << 12},
     sampleBuffer{}
 {
+    // Create audio ringbuffer.
+    std::unique_ptr<RingBuffer<uint16_t>> rbLocal(new RingBuffer<uint16_t>(1 << 12));
+    rb = std::move(rbLocal);
+
     // Get Current sample rate
     sampleRate = audio->getSampleRate(); 
-    audio->registerAudioCallback(apuSdlCallback, &rb);    
+    audio->registerAudioCallback(apuSdlCallback, rb.get());    
 
     // compute clocks per sample
     clksPerSample = float(cpuClk) / float(sampleRate);
 
     nextSampleCountdown = 1;
     currentSampleClk = 0.0f;
+
 }
 
 Apu::~Apu()

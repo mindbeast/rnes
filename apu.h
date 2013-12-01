@@ -13,17 +13,13 @@
 #include <vector>
 #include <cassert>
 #include <iostream>
-#include <mutex>
-#include <condition_variable>
+#include <memory>
 
 namespace Rnes {
 
 class Sdl;
 class Nes;
 
-static bool isPow2(uint32_t i) {
-    return ((i - 1) & i) == 0;
-}
 static const
 uint8_t lengthCounterLut[] = {
      10, 254,  20,   2,
@@ -42,53 +38,7 @@ static uint16_t lengthIndexToValue(uint32_t index)
     return lengthCounterLut[index];
 }
 
-template <typename T> class RingBuffer {
-    std::vector<T> buffer;
-    uint32_t size;
-    volatile uint64_t get, put;
-    std::mutex mutex;
-    std::condition_variable consumeCv;
-    std::condition_variable produceCv;
-    bool hasData(uint32_t count) const {
-        return (get + count) <= put;
-    }
-    bool hasEmptySpace(uint32_t count) const {
-        return (put + count - get) <= size;
-    }
-public:
-    RingBuffer(uint32_t sz) :
-        buffer(sz, 0), size{sz}, get{0}, put{0}, mutex{}, consumeCv{}, produceCv{} {
-        assert(isPow2(sz));
-    }
-    ~RingBuffer() {}
-    void putData(const T *in, uint32_t count) {
-        {
-            std::unique_lock<std::mutex> lock(mutex);
-            if (!hasEmptySpace(count)) {
-                produceCv.wait(lock, [&]{ return this->hasEmptySpace(count); });
-            }
-            for (uint32_t i = 0; i < count; i++) {
-                buffer[put & (size - 1)] = in[i];
-                put += 1;
-            }
-        }
-        consumeCv.notify_one();
-    }
-    void getData(T *out, uint32_t count) {
-        {
-            std::unique_lock<std::mutex> lock(mutex);
-            if (!hasData(count)) {
-                consumeCv.wait(lock, [&]{ return this->hasData(count); });
-            }
-            for (uint32_t i = 0; i < count; i++) {
-                out[i] = buffer[get & (size - 1)];
-                get += 1;
-            }
-        }
-        produceCv.notify_one();
-    }
-};
-
+template <class T> class RingBuffer;
 class Apu;
 
 class Pulse {
@@ -541,8 +491,8 @@ private:
     Triangle triangle;
     Noise noise;
 
-    RingBuffer<int16_t> rb;
-    std::vector<int16_t> sampleBuffer;
+    std::shared_ptr<RingBuffer<uint16_t>> rb;
+    std::vector<uint16_t> sampleBuffer;
 
 public:
     bool isRequestingFrameIrq() const {
