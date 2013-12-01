@@ -26,9 +26,9 @@ mmc3:
 Broken for unknown reasons:
 * Metroid (probably because of ppu sprite/bg ordering issues)
 
-![alt text](http://i.imgur.com/CMoqXni "Super Mario Brothers 3")
-![alt text](http://i.imgur.com/z87UhhR "Kirby's Adventure")
-![alt text](http://i.imgur.com/v6tlxBO "Super Mario Brothers")
+![alt text](http://i.imgur.com/CMoqXni.png "Super Mario Brothers 3")
+![alt text](http://i.imgur.com/z87UhhR.png "Kirby's Adventure")
+![alt text](http://i.imgur.com/v6tlxBO.png "Super Mario Brothers")
 
 ## Build requirements:
     * SDL 2.0
