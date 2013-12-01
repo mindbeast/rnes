@@ -15,13 +15,13 @@
 #include <iostream>
 #include <memory>
 
-#include "apuunit.h"
-
 namespace Rnes {
 
 class Sdl;
 class Nes;
-
+class Pulse;
+class Triangle;
+class Noise;
 template <class T> class RingBuffer;
 
 class Apu {
@@ -122,10 +122,10 @@ private:
     uint64_t fourFrameCount;
     uint64_t fiveFrameCount;
 
-    Pulse pulseA;
-    Pulse pulseB;
-    Triangle triangle;
-    Noise noise;
+    std::unique_ptr<Pulse> pulseA;
+    std::unique_ptr<Pulse> pulseB;
+    std::unique_ptr<Triangle> triangle;
+    std::unique_ptr<Noise> noise;
 
     std::shared_ptr<RingBuffer<uint16_t>> rb;
     std::vector<uint16_t> sampleBuffer;
