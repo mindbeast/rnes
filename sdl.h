@@ -9,8 +9,13 @@
 #ifndef __SDL_H__
 #define __SDL_H__
 
-#include <SDL2/SDL.h>
 #include <cassert>
+#include <cstdint>
+
+class SDL_Surface;
+class SDL_Window;
+class SDL_Renderer;
+class SDL_Texture;
 
 namespace Rnes {
 

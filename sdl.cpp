@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 Riley Andrews. All rights reserved.
 //
 
+#include <SDL2/SDL.h>
+
 #include "sdl.h"
 
 namespace Rnes {
