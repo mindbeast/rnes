@@ -7,6 +7,7 @@
 //
 
 #include "apu.h"
+#include "apuunit.h"
 #include "sdl.h"
 #include "ringbuffer.h"
 #include <cmath>
@@ -37,17 +38,17 @@ void apuSdlCallback(void *data, uint8_t *stream, int len)
 
 void Apu::clockLengthAndSweep()
 {
-    pulseA.clockLengthAndSweep();
-    pulseB.clockLengthAndSweep();
-    triangle.clockLength();
-    noise.clockLength();
+    pulseA->clockLengthAndSweep();
+    pulseB->clockLengthAndSweep();
+    triangle->clockLength();
+    noise->clockLength();
 } 
 
 void Apu::clockEnvAndTriangle()
 {
-    pulseA.clockEnvelope(); 
-    pulseB.clockEnvelope();
-    triangle.clockLinearCounter();
+    pulseA->clockEnvelope(); 
+    pulseB->clockEnvelope();
+    triangle->clockLinearCounter();
 }
 
 void Apu::resetFrameCounter()
@@ -88,14 +89,14 @@ void Apu::stepAdvance()
 
 void Apu::stepFastTimers() 
 {
-    triangle.clockTimer();
+    triangle->clockTimer();
 }
 
 void Apu::stepSlowTimers()
 {
-    pulseA.clockTimer();
-    pulseB.clockTimer();
-    noise.clockTimer();
+    pulseA->clockTimer();
+    pulseB->clockTimer();
+    noise->clockTimer();
 }
 
 void Apu::generateSample() 
@@ -138,8 +139,8 @@ void Apu::tick()
 
     // Compute output each cycle
     sampleOffset += 1;
-    float sample = 95.88f  / ((8128.0f  / (float(pulseA.getCurrentSample() + pulseB.getCurrentSample()))) + 100.0f);
-    sample += 159.79f / (100.0f + (1.0f / ((float(triangle.getCurrentSample()) / 8227.0f) + float(noise.getCurrentSample()) / 12241.0f)));
+    float sample = 95.88f  / ((8128.0f  / (float(pulseA->getCurrentSample() + pulseB->getCurrentSample()))) + 100.0f);
+    sample += 159.79f / (100.0f + (1.0f / ((float(triangle->getCurrentSample()) / 8227.0f) + float(noise->getCurrentSample()) / 12241.0f)));
     samples[sampleOffset % sampleBufferSize] = sample;
 
     // Determine when to sample, and sample if needed.
@@ -178,35 +179,35 @@ void Apu::writeReg(uint32_t reg, uint8_t val)
         clearRequestDmcIrq();
         // xx what to do with the upper bits here
         if (~val & STATUS_CHANNEL1_LENGTH) {
-            pulseA.zeroLength();
+            pulseA->zeroLength();
         }
         if (~val & STATUS_CHANNEL2_LENGTH) {
-            pulseB.zeroLength();
+            pulseB->zeroLength();
         }
         if (~val & STATUS_CHANNEL3_LENGTH) {
-            triangle.zeroLength();
+            triangle->zeroLength();
         }
         if (~val & STATUS_CHANNEL4_LENGTH) {
-            noise.zeroLength();
+            noise->zeroLength();
         }
     }
     else if (reg == CHANNEL1_LENGTH) {
-        pulseA.resetLength();
-        pulseA.resetSequencer();
-        pulseA.resetEnvelope();
+        pulseA->resetLength();
+        pulseA->resetSequencer();
+        pulseA->resetEnvelope();
     }
     else if (reg == CHANNEL2_LENGTH) {
-        pulseB.resetLength();
-        pulseB.resetSequencer();
-        pulseB.resetEnvelope();
+        pulseB->resetLength();
+        pulseB->resetSequencer();
+        pulseB->resetEnvelope();
     } 
     else if (reg == CHANNEL3_LENGTH) {
-        triangle.resetLength();
-        triangle.setHaltFlag();
+        triangle->resetLength();
+        triangle->setHaltFlag();
     }
     else if (reg == CHANNEL4_LENGTH) {
-        noise.resetLength(); 
-        noise.resetEnvelope();
+        noise->resetLength(); 
+        noise->resetEnvelope();
     }
 }
 
@@ -216,10 +217,10 @@ uint8_t Apu::readReg(uint32_t reg)
     if (reg == CONTROL_STATUS) {
         clearRequestFrameIrq();
         result = result & (STATUS_FRAME_IRQ_REQUESTED | STATUS_DMC_IRQ_REQUESTED);
-        result |= pulseA.isNonZeroLength() ? STATUS_CHANNEL1_LENGTH : 0;
-        result |= pulseB.isNonZeroLength() ? STATUS_CHANNEL2_LENGTH : 0;
-        result |= triangle.isNonZeroLength() ? STATUS_CHANNEL3_LENGTH : 0;
-        result |= noise.isNonZeroLength() ? STATUS_CHANNEL4_LENGTH : 0;
+        result |= pulseA->isNonZeroLength() ? STATUS_CHANNEL1_LENGTH : 0;
+        result |= pulseB->isNonZeroLength() ? STATUS_CHANNEL2_LENGTH : 0;
+        result |= triangle->isNonZeroLength() ? STATUS_CHANNEL3_LENGTH : 0;
+        result |= noise->isNonZeroLength() ? STATUS_CHANNEL4_LENGTH : 0;
     }
     return result;
 }
@@ -234,15 +235,24 @@ Apu::Apu(Nes *parent, Sdl *audio) :
     regs{0},
     fourFrameCount{0},
     fiveFrameCount{0},
-    pulseA{&regs[CHANNEL1_VOLUME_DECAY], this, true},
-    pulseB{&regs[CHANNEL2_VOLUME_DECAY], this, false},
-    triangle{&regs[CHANNEL3_LINEAR_COUNTER], this},
-    noise{&regs[CHANNEL4_VOLUME_DECAY], this},
     sampleBuffer{}
 {
     // Create audio ringbuffer.
     std::unique_ptr<RingBuffer<uint16_t>> rbLocal(new RingBuffer<uint16_t>(1 << 12));
     rb = std::move(rbLocal);
+
+    // Create apu units.
+    std::unique_ptr<Pulse> pulseALocal(new Pulse{&regs[CHANNEL1_VOLUME_DECAY], this, true});
+    pulseA = std::move(pulseALocal);
+
+    std::unique_ptr<Pulse> pulseBLocal(new Pulse{&regs[CHANNEL2_VOLUME_DECAY], this, false});
+    pulseB = std::move(pulseBLocal);
+
+    std::unique_ptr<Triangle> triangleLocal(new Triangle{&regs[CHANNEL3_LINEAR_COUNTER], this});
+    triangle = std::move(triangleLocal);
+
+    std::unique_ptr<Noise> noiseLocal(new Noise{&regs[CHANNEL4_VOLUME_DECAY], this});
+    noise = std::move(noiseLocal);
 
     // Get Current sample rate
     sampleRate = audio->getSampleRate(); 
