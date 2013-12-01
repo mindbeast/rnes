@@ -9,7 +9,6 @@
 #ifndef __SDL_H__
 #define __SDL_H__
 
-#include <cassert>
 #include <cstdint>
 
 class SDL_Surface;

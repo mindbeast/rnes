@@ -10,6 +10,8 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <iostream>
+#include <assert.h>
 
 #include "sdl.h"
 #include "nes.h"
