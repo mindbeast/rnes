@@ -57,7 +57,7 @@ class Nes {
     std::unique_ptr<Ppu> ppu;
     std::unique_ptr<Apu> apu;
     std::unique_ptr<Controller> pad;
-    Mmc *mmc;
+    std::unique_ptr<Mmc> mmc;
     
     uint16_t translateCpuWindows(uint16_t addr) const;
     uint16_t translatePpuWindows(uint16_t addr) const;
