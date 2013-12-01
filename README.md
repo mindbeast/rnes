@@ -29,6 +29,7 @@ Broken for unknown reasons:
 ![alt text](http://i.imgur.com/CMoqXni.png "Super Mario Brothers 3")
 ![alt text](http://i.imgur.com/z87UhhR.png "Kirby's Adventure")
 ![alt text](http://i.imgur.com/v6tlxBO.png "Super Mario Brothers")
+![alt text](http://i.imgur.com/N3YlmVg.png "Final Fantasy 3")
 
 ## Build requirements:
     * SDL 2.0
