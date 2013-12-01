@@ -35,7 +35,6 @@ static uint16_t lengthIndexToValue(uint32_t index)
     return lengthCounterLut[index];
 }
 
-template <class T> class RingBuffer;
 class Apu;
 
 class Pulse {
