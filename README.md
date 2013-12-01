@@ -14,6 +14,8 @@ mmc1:
 * Megan Man 2
 * Lemmings
 * Dr. Mario
+* Legend of Zelda
+* Final Fantasy
 
 mmc3:
 * Super Mario Brothers 2
@@ -22,9 +24,7 @@ mmc3:
 * Final Fantasy 3
 
 Broken for unknown reasons:
-* Zelda
 * Metroid (probably because of ppu sprite/bg ordering issues)
-* Final Fantasy I
 
 ![alt text](http://i.imgur.com/5TjWNVa.png "Super Mario Brothers")
 
