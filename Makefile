@@ -8,7 +8,7 @@ DEFINES    := NDEBUG
 else
 CPPFLAGS   = -g
 endif
-CPPFLAGS  += -std=c++11 -Wall
+CPPFLAGS  += -std=c++11 -Wall -Wno-unused-function
 
 LIBS += SDL2
 
