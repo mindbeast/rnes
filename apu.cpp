@@ -10,6 +10,8 @@
 #include "sdl.h"
 #include <cmath>
 
+namespace Rnes {
+
 uint16_t Pulse::computeSweepTarget() const
 {
     uint16_t period = getTimerPeriod(); 
@@ -458,4 +460,6 @@ Apu::~Apu()
 {
     audio->unregisterAudioCallback();
 }
+
+};
 

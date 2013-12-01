@@ -2,6 +2,8 @@
 #include <cassert>
 #include <iostream>
 
+namespace Rnes {
+
 //
 // Shared MMC logic.
 //
@@ -564,3 +566,5 @@ bool Mmc3::isRequestingIrq()
 {
     return irqEnabled and irqPending;
 }
+
+};

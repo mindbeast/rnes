@@ -18,6 +18,8 @@
 #include <cassert>
 #include <functional>
 
+namespace Rnes {
+
 class Nes;
 
 struct OpcodeHash {
@@ -1099,6 +1101,8 @@ public:
     }
     
     ~Cpu() {}
+};
+
 };
 
 

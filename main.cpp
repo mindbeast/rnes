@@ -19,23 +19,20 @@
 // - apu dmc channel
 // - color emphasis
 
-using namespace std;
-
-
 std::string help = {
     "--rom [filename]\n"
     "-r [filename]\n"
 };
 
-
 void displayHelpAndQuit()
 {
-    cerr << help;
+    std::cerr << help;
     exit(1);
 }
 
 int main(int argc, char *argv[])
 {
+    using namespace std;
     string romFile;
     bool romFileSpecified = false;
 
@@ -51,6 +48,7 @@ int main(int argc, char *argv[])
         displayHelpAndQuit();
     }
 
+    using namespace Rnes;
     Nes *nes = new Nes();
     int res = nes->loadRom(romFile);
     if (res) {

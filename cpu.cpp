@@ -9,6 +9,8 @@
 #include "cpu.h"
 #include "nes.h"
 
+namespace Rnes {
+
 uint8_t Cpu::load(uint16_t addr)
 {
     return nes->cpuMemRead(addr);
@@ -28,4 +30,6 @@ bool Cpu::nmiRequested()
 {
     return nes->isRequestingNmi();;
 }
+
+};
 
