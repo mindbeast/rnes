@@ -6,14 +6,37 @@
 //  Copyright (c) 2013 Riley Andrews. All rights reserved.
 //
 
-#include "nes.h"
-#include "mmc.h"
 #include <unistd.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 
+#include "sdl.h"
+#include "nes.h"
+#include "mmc.h"
+#include "ppu.h"
+#include "apu.h"
+#include "cpu.h"
+
 namespace Rnes {
+
+static const uint16_t prgRomSize = 16384;
+static const uint16_t chrRomSize = 8192;
+
+static const uint32_t spriteDmaCycleEnd = 512;
+static const uint16_t spriteDmaAddr = 0x4014;
+
+static const uint16_t joypadAddr = 0x4016;
+
+static const uint16_t ppuRegBase = 0x2000;
+static const uint16_t ppuRegEnd = ppuRegBase + Ppu::REG_COUNT - 1;
+
+static const uint16_t apuRegBase = 0x4000;
+static const uint16_t apuRegEnd = apuRegBase + Apu::REG_COUNT - 1;
+
+//
+// Controller implementation.
+//
 
 void Controller::setShiftReg()
 {
@@ -55,6 +78,10 @@ uint8_t Controller::read()
         return ret;
     }
 }
+
+//
+// Core nes class.
+//
 
 uint16_t Nes::translateCpuWindows(uint16_t addr) const
 {
@@ -123,16 +150,16 @@ void Nes::cpuMemWrite(uint16_t addr, uint8_t val)
         cpuMemory[addr] = val;
     }
     else if (addr >= ppuRegBase && addr <= ppuRegEnd) {
-        ppu.writeReg(addr - ppuRegBase, val);
+        ppu->writeReg(addr - ppuRegBase, val);
     }
     else if (addr == spriteDmaAddr) {
         spriteDmaSetup(val);
     }
     else if (addr == joypadAddr) {
-        pad.write(val);
+        pad->write(val);
     }
     else if (addr >= apuRegBase && addr <= apuRegEnd) {
-        apu.writeReg(addr - apuRegBase, val);
+        apu->writeReg(addr - apuRegBase, val);
     }
     else {
         mmc->cpuMemWrite(addr, val);
@@ -146,13 +173,13 @@ uint8_t Nes::cpuMemRead(uint16_t addr)
         return cpuMemory[addr];
     }
     else if (addr >= ppuRegBase && addr <= ppuRegEnd) {
-        return ppu.readReg(addr - ppuRegBase);
+        return ppu->readReg(addr - ppuRegBase);
     }
     else if (addr == joypadAddr) {
-        return pad.read();
+        return pad->read();
     }
     else if (addr >= apuRegBase && addr <= apuRegEnd) {
-        return apu.readReg(addr - apuRegBase);
+        return apu->readReg(addr - apuRegBase);
     }
     else {
         return mmc->cpuMemRead(addr);
@@ -180,32 +207,32 @@ void Nes::notifyScanlineComplete()
 
 bool Nes::isRequestingNmi()
 {
-    return ppu.isRequestingNmi();
+    return ppu->isRequestingNmi();
 }
 
 bool Nes::isRequestingInt()
 {
-    return apu.isRequestingIrq() || mmc->isRequestingIrq();
+    return apu->isRequestingIrq() || mmc->isRequestingIrq();
 }
 
 void Nes::run()
 {
     uint32_t inputCycles = 1 << 16;
-    cpu.reset();
+    cpu->reset();
     while (1) {
         uint32_t cpuCycles;
         if (!spriteDmaMode) {
-            cpuCycles = cpu.runInst();
+            cpuCycles = cpu->runInst();
         }
         else {
             cpuCycles = spriteDmaExecute();
         }
-        apu.run(cpuCycles);
-        ppu.run(cpuCycles);
+        apu->run(cpuCycles);
+        ppu->run(cpuCycles);
 
         cycles += cpuCycles;
         if ((cycles % inputCycles) == 0) {
-            sdl.parseInput();
+            sdl->parseInput();
         }
     }
 }
@@ -304,6 +331,14 @@ int Nes::loadRom(const std::string &filename)
     }
     return 0;
 }
+
+Nes::Nes() : 
+    sdl(new Sdl()),
+    cpu(new Cpu(this)),
+    ppu(new Ppu(this,sdl.get())),
+    apu(new Apu(this, sdl.get())),
+    pad(new Controller(sdl.get()))
+{}
 
 Nes::~Nes()
 {

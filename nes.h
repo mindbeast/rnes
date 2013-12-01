@@ -9,13 +9,15 @@
 #ifndef __NES_H__
 #define __NES_H__
 
-#include "ppu.h"
-#include "cpu.h"
-#include "apu.h"
-#include "sdl.h"
+#include <memory>
 #include "mmc.h"
 
 namespace Rnes {
+
+class Sdl;
+class Cpu;
+class Ppu;
+class Apu;
 
 class Controller {
     Sdl *sdl;
@@ -38,20 +40,6 @@ class Nes {
     static const uint32_t cpuMemorySize = 1 << 16;
     static const uint32_t videoMemorySize = 1 << 14;
 
-    static const uint16_t prgRomSize = 16384;
-    static const uint16_t chrRomSize = 8192;
-    
-    static const uint32_t spriteDmaCycleEnd = 512;
-    static const uint16_t spriteDmaAddr = 0x4014;
-    
-    static const uint16_t joypadAddr = 0x4016;
-    
-    static const uint16_t ppuRegBase = 0x2000;
-    static const uint16_t ppuRegEnd = ppuRegBase + Ppu::REG_COUNT - 1;
-    
-    static const uint16_t apuRegBase = 0x4000;
-    static const uint16_t apuRegEnd = apuRegBase + Apu::REG_COUNT - 1;
-    
     uint8_t vidMemory[videoMemorySize] = {0};
     uint8_t cpuMemory[cpuMemorySize] = {0};
     
@@ -64,11 +52,11 @@ class Nes {
 
     uint64_t cycles = 0;
     
-    Sdl sdl;
-    Cpu cpu;
-    Ppu ppu;
-    Apu apu;
-    Controller pad;
+    std::unique_ptr<Sdl> sdl;
+    std::unique_ptr<Cpu> cpu;
+    std::unique_ptr<Ppu> ppu;
+    std::unique_ptr<Apu> apu;
+    std::unique_ptr<Controller> pad;
     Mmc *mmc;
     
     uint16_t translateCpuWindows(uint16_t addr) const;
@@ -91,7 +79,8 @@ public:
     int mapRom(const std::string &filename);
     int loadRom(const std::string &filename);
     void run();
-    Nes() : sdl{}, cpu{this}, ppu{this,&sdl}, apu{this, &sdl}, pad{&sdl} {}
+
+    Nes();
     ~Nes();
     Nes& operator=(const Nes&) = delete;
     Nes(const Nes&) = delete;
