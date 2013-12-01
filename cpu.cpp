@@ -227,8 +227,6 @@ bool Cpu::getFlag(Flag f)
     return (f & status) != 0;
 }
 
-void cycleAdvance(uint64_t cycles);
-
 void Cpu::setZeroAndNeg(uint8_t val)
 {
     if (val == 0) {
@@ -545,7 +543,8 @@ void Cpu::incInst(uint16_t addr)
 }
 
 // helper
-void Cpu::incdec(uint8_t &reg, const std::function<uint8_t(uint8_t)>& f) {
+void Cpu::incdec(uint8_t &reg, const std::function<uint8_t(uint8_t)>& f)
+{
     uint8_t result = f(reg);
     setZeroAndNeg(result);
     reg = result;
@@ -692,6 +691,7 @@ void Cpu::plpInst(uint16_t)
     // BRK is never actually set in the flags register. WHAT?
     status = (popStack() & ~BREAK) | ONE;
 }
+
 void Cpu::rolInstReg(uint16_t)
 {
     uint8_t result = a << 1 | (getFlag(CARRY) ? 1 : 0);
@@ -834,29 +834,34 @@ void Cpu::taxInst(uint16_t)
     x = a;
     setZeroAndNeg(x);
 }
+
 // move accum to y
 void Cpu::tayInst(uint16_t)
 {
     y = a;
     setZeroAndNeg(y);
 }
+
 // move sp to x
 void Cpu::tsxInst(uint16_t)
 {
     x = sp;
     setZeroAndNeg(x);
 }
+
 // move x to accum
 void Cpu::txaInst(uint16_t)
 {
     a = x;
     setZeroAndNeg(a);
 }
+
 // move x to sp
 void Cpu::txsInst(uint16_t)
 {
     sp = x;
 }
+
 // move y to accum
 void Cpu::tyaInst(uint16_t)
 {
