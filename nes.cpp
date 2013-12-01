@@ -314,18 +314,28 @@ int Nes::loadRom(const std::string &filename)
     bool verticalMirroring = (header->info[0] & 1) != 0;
     switch (mapper) {
         case 0:
+        {
             std::cout << "Loading no mmc game." << std::endl;
-            mmc = new MmcNone(prgRoms, chrRoms, header->numPrgRamBanks, verticalMirroring);
+            std::unique_ptr<Mmc> mmcLocal(new MmcNone(prgRoms, chrRoms, header->numPrgRamBanks, verticalMirroring));
+            mmc = std::move(mmcLocal);
             break;
+        }
         case 1:
+        {
             std::cout << "Loading MMC1 game." << std::endl;
-            mmc = new Mmc1(prgRoms, chrRoms, header->numPrgRamBanks, verticalMirroring);
+            std::unique_ptr<Mmc> mmcLocal(new Mmc1(prgRoms, chrRoms, header->numPrgRamBanks, verticalMirroring));
+            mmc = std::move(mmcLocal);
             break;
+        }
         case 4:
+        {
             std::cout << "Loading MMC3 game." << std::endl;
-            mmc = new Mmc3(prgRoms, chrRoms, header->numPrgRamBanks, verticalMirroring);
+            std::unique_ptr<Mmc> mmcLocal(new Mmc3(prgRoms, chrRoms, header->numPrgRamBanks, verticalMirroring));
+            mmc = std::move(mmcLocal);
             break;
+        }
         default:
+            std::cout << "Unsupported mapper: " << std::hex << mapper << std::endl;
             assert(0);
             break;
     }
