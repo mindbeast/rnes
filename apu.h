@@ -72,12 +72,6 @@ public:
         }
         consumeCv.notify_one();
     }
-    /*
-    void dumpSamples(uint32_t samples) {
-        std::unique_lock<std::mutex> lock(mutex);
-        get += samples;
-    }
-    */
     void getData(T *out, uint32_t count) {
         {
             std::unique_lock<std::mutex> lock(mutex);
