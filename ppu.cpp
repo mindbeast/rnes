@@ -15,7 +15,20 @@
 #include <assert.h>
 #include <cstring>
 
-namespace Rnes {
+static const uint32_t vblankScanline = 241;
+static const uint32_t vblankScanelineEnd = 261;
+
+static const uint32_t renderHeight = 240;
+static const uint32_t renderWidth = 256;
+
+static const uint16_t backColorAddr = 0x3f00;
+
+static const uint32_t maxSpriteCount = 64;
+static const uint32_t maxRenderedSpritePerScanline = 8;
+
+static const uint32_t patternTableSize = 0x1000;
+
+static constexpr float frameTimeMs = 1000.0f / 60.09848604129652f;
 
 static void sleepMs(float ms)
 {
@@ -32,6 +45,119 @@ static float timerGetMs()
     return ts.tv_sec * 1000.0f + ts.tv_nsec / 1000000.0f;
 }
 
+namespace Rnes {
+
+static const uint32_t nesPaletteLut[64] = {
+    0x7C7C7C, 0x0000FC, 0x0000BC, 0x4428BC,
+    0x940084, 0xA80020, 0xA81000, 0x881400,
+    0x503000, 0x007800, 0x006800, 0x005800,
+    0x004058, 0x000000, 0x000000, 0x000000,
+    0xBCBCBC, 0x0078F8, 0x0058F8, 0x6844FC,
+    0xD800CC, 0xE40058, 0xF83800, 0xE45C10,
+    0xAC7C00, 0x00B800, 0x00A800, 0x00A844,
+    0x008888, 0x000000, 0x000000, 0x000000,
+    0xF8F8F8, 0x3CBCFC, 0x6888FC, 0x9878F8,
+    0xF878F8, 0xF85898, 0xF87858, 0xFCA044,
+    0xF8B800, 0xB8F818, 0x58D854, 0x58F898,
+    0x00E8D8, 0x787878, 0x000000, 0x000000,
+    0xFCFCFC, 0xA4E4FC, 0xB8B8F8, 0xD8B8F8,
+    0xF8B8F8, 0xF8A4C0, 0xF0D0B0, 0xFCE0A8,
+    0xF8D878, 0xD8F878, 0xB8F8B8, 0xB8F8D8,
+    0x00FCFC, 0xF8D8F8, 0x000000, 0x000000,
+};
+
+uint32_t Ppu::getBgColor()
+{
+    uint8_t memColor = load(backColorAddr);
+    assert(memColor < sizeof(nesPaletteLut)/sizeof(nesPaletteLut[0]));
+    if (isMonochromeMode()) {
+        memColor &= 0x30;
+    }
+    else {
+        memColor &= 0x3f;
+    }
+    return nesPaletteLut[memColor];
+}
+
+uint32_t Ppu::getColor(uint32_t palette, uint32_t color, bool sprite)
+{
+    uint8_t memColor;
+    assert(color >= 0 && color <= 3);
+    if (color == 0) {
+        memColor = load(backColorAddr);
+    }
+    else {
+        uint16_t paletteOffset = sprite ? 0x10 : 0;
+        memColor = load(backColorAddr + paletteOffset + 4 * palette + color);
+    }
+    if (isMonochromeMode()) {
+        memColor &= 0x30;
+    }
+    else {
+        memColor &= 0x3f;
+    }
+    assert(memColor < sizeof(nesPaletteLut)/sizeof(nesPaletteLut[0]));
+    return nesPaletteLut[memColor];
+}
+
+void Ppu::vramCoarseXInc()
+{
+    if ((vramCurrentAddr & 0x1f) == 31) {
+        // coarse x = 0
+        vramCurrentAddr &= ~0x001f;
+        // switch horizontal nametable
+        vramCurrentAddr ^= 0x0400;
+    }  
+    else {
+        // increment coarse x
+        vramCurrentAddr += 1;
+    }
+}
+
+void Ppu::vramYInc()
+{
+    if ((vramCurrentAddr & 0x7000) != 0x7000) {
+        vramCurrentAddr += 0x1000;
+    }
+    else {
+        vramCurrentAddr &= ~0x7000;
+        int y = (vramCurrentAddr & 0x03e0) >> 5;
+        if (y == 29) {
+            y = 0;
+            vramCurrentAddr ^= 0x0800;
+        }
+        else if (y == 31) {
+            y = 0;
+        }
+        else {
+            y += 1;
+        }
+        vramCurrentAddr = (vramCurrentAddr & ~0x03e0) | (y << 5);
+    }
+}
+
+void Ppu::vramXReset()
+{
+    vramCurrentAddr = (vramCurrentAddr & 0xfbe0) | (vramTempAddr & ~0xfbe0);
+}
+
+void Ppu::vramYReset()
+{
+    vramCurrentAddr = (vramCurrentAddr & ~0xfbe0) | (vramTempAddr & 0xfbe0);
+}
+
+uint16_t Ppu::loadPatternTile(uint16_t addr)
+{
+    uint16_t ret = 0;
+    uint16_t a = load(addr);
+    uint16_t b = load(addr + 8);
+    for (uint32_t i = 0; i < 8; i++) {
+        ret |= ((1u << i) & a) << i;
+        ret |= ((1u << i) & b) << (i + 1);
+    }
+    return ret;
+}
+
 Ppu::Ppu(Nes *parent, Sdl *disp) : nes{parent}, sdl{disp}
 {
     lastFrameTimeMs = timerGetMs();
@@ -45,6 +171,20 @@ uint8_t Ppu::load(uint16_t addr)
 void Ppu::store(uint16_t addr, uint8_t val)
 {
     nes->vidMemWrite(addr, val);
+}
+
+void Ppu::run(uint32_t cpuCycle)
+{
+    for (uint32_t i = 0; i < cpuCycle * 3; i++) {
+        tick();
+    }
+}
+
+bool Ppu::isRequestingNmi()
+{
+    bool ret = nmiRequested;
+    nmiRequested = false;
+    return ret;
 }
 
 void Ppu::writeReg(uint32_t reg, uint8_t val)
@@ -156,8 +296,8 @@ uint8_t Ppu::readReg(uint32_t reg)
     return 0;
 }
 
-
-template<bool is8x8> uint8_t Ppu::getColorFromPatternTable(uint16_t patternTable, int offset, uint32_t x, uint32_t y)
+template<bool is8x8>
+uint8_t Ppu::getColorFromPatternTable(uint16_t patternTable, int offset, uint32_t x, uint32_t y)
 {
     assert(x < 8);
     if (!is8x8) {
@@ -354,10 +494,13 @@ void Ppu::tick()
     cycle += 1;
 }
 
-void Ppu::run(uint32_t cpuCycle)
+uint16_t Ppu::getVramAddrInc() const
 {
-    for (uint32_t i = 0; i < cpuCycle * 3; i++) {
-        tick();
+    if (regs[CONTROL1_REG] & CONTROL_VRAM_ADDR_INC) {
+        return 32;
+    }
+    else {
+        return 1;
     }
 }
 
