@@ -35,8 +35,6 @@ static uint16_t lengthIndexToValue(uint32_t index)
     return lengthCounterLut[index];
 }
 
-class Apu;
-
 class Pulse {
     enum {
         PULSE_VOLUME_DECAY, // ddlDnnnn (duty cycle, loop, Disable, n)
@@ -57,7 +55,6 @@ class Pulse {
 
     uint8_t *regs;
     bool primary;
-    Apu *apu;
 
     // length logic
     uint8_t lengthCounter;
@@ -127,10 +124,9 @@ class Pulse {
     void envelopeDividerClock();
 
 public:
-    Pulse(uint8_t *argRegs, Apu *parent, bool primaryPulse) : 
+    Pulse(uint8_t *argRegs, bool primaryPulse) : 
         regs{argRegs},
         primary{primaryPulse},
-        apu{parent},
         lengthCounter{0},
         envelope{0},
         envelopeDivider{0},
@@ -200,7 +196,6 @@ class Triangle {
          0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15
     };
     uint8_t *regs;
-    Apu *apu;
     
     // length logic
     uint8_t lengthCounter;
@@ -256,9 +251,8 @@ public:
     uint8_t getCurrentSample() const {
         return currentSample;
     }
-    Triangle(uint8_t *argRegs, Apu *parent) : 
+    Triangle(uint8_t *argRegs) : 
         regs{argRegs},
-        apu{parent},
         lengthCounter{0},
         linearCounterHalt{false},
         linearCounter{0},
@@ -283,7 +277,6 @@ class Noise {
         NOISE_REG_COUNT
     };
     uint8_t *regs;
-    Apu *apu;
     
     // length logic
     uint8_t lengthCounter;
@@ -365,9 +358,8 @@ public:
         }
         return getVolume();
     }
-    Noise(uint8_t *argRegs, Apu *parent) : 
+    Noise(uint8_t *argRegs) : 
         regs{argRegs},
-        apu{parent},
         lengthCounter{0},
         shiftRegister{1},
         envelope{0},
