@@ -131,14 +131,16 @@ void Pulse::clockTimer()
     timerDivider = (timerDivider + 1) % getTimerPeriod();
 }
 
-void Triangle::clockLength() {
+void Triangle::clockLength()
+{
     // Length
     if (!isHalted() and lengthCounter) {
        lengthCounter--; 
     }   
 }
 
-void Triangle::clockLinearCounter() {
+void Triangle::clockLinearCounter()
+{
     if (linearCounterHalt) {
         linearCounter = getLinearCounterReload();
     }
