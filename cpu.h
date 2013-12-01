@@ -57,7 +57,7 @@ private:
         NEGATIVE    = 1 << 7, // set when the result of an operation is negative
     };
     
-    // Helper functions used to implement instructions.
+    // Helper functions....
     uint8_t load(uint16_t addr);
     uint16_t load16(uint16_t addr);
     void store(uint16_t addr, uint8_t val);
@@ -65,12 +65,9 @@ private:
     void setFlag(Flag f);
     void clearFlag(Flag f);
     bool getFlag(Flag f);
-    void cycleAdvance(uint64_t cycles);
     void setZeroAndNeg(uint8_t val);
     void pushStack(uint8_t v);
     uint8_t popStack();
-    bool isNeg(uint8_t val);
-    bool isPos(uint8_t val);
     void relativeBranchPenalty(uint16_t start, uint16_t end);
 
     // Are other parts of the system requesting interrupts.
@@ -79,6 +76,7 @@ private:
     
     // Execute interrupt.
     uint32_t doInt();
+
     // Execute non-maskable interrupt.
     uint32_t doNmi();
     
@@ -103,21 +101,28 @@ private:
 
     // branch if OVERFL set
     void bvsInst(uint16_t addr);
+
     // clear carry flag
     void clcInst(uint16_t);
+
     // clear decimal mode
     void cldInst(uint16_t);
+
     // clear interrupt disable flag
     void cliInst(uint16_t);
+
     // clear OVERFL flag
     void clvInst(uint16_t);
+
     // helper
     void cmp(uint16_t addr, uint8_t val);
 
     // compare accumulator to memory
     void cmpInst(uint16_t addr);
+
     // compare x to memory
     void cpxInst(uint16_t addr);
+
     // compare y to memory
     void cpyInst(uint16_t addr);
     
@@ -125,6 +130,7 @@ private:
     void incdecmem(uint16_t addr, const std::function<uint8_t(uint8_t)>& f);
     void decInst(uint16_t addr);
     void incInst(uint16_t addr);
+
     // helper
     void incdec(uint8_t &reg, const std::function<uint8_t(uint8_t)>& f);
     
@@ -139,11 +145,13 @@ private:
     
     // ands value from memory/immediate to a
     void andInst(uint16_t addr);
+
     // exclusive ors value from memory/immediate
     void eorInst(uint16_t addr);
     
     // jmp to program counter
     void jmpInst(uint16_t addr);
+
     // jmp to subroutine and push return addr
     void jsrInst(uint16_t addr);
     
@@ -179,28 +187,37 @@ private:
 
     // set carry flag
     void secInst(uint16_t);
+
     // set bcd mode
     void sedInst(uint16_t);
+
     // set interrupt disable
     void seiInst(uint16_t);
     
     // store accumulator to memory
     void staInst(uint16_t addr);
+
     // store x to memory
     void stxInst(uint16_t addr);
+
     // store y to memory
     void styInst(uint16_t addr);
     
     // move accum to x
     void taxInst(uint16_t);
+
     // move accum to y
     void tayInst(uint16_t);
+
     // move sp to x
     void tsxInst(uint16_t);
+
     // move x to accum
     void txaInst(uint16_t);
+
     // move x to sp
     void txsInst(uint16_t);
+
     // move y to accum
     void tyaInst(uint16_t);
     
@@ -234,16 +251,18 @@ private:
 
     // Large look-up table associating opcode to instruction implementation.
     static const std::unordered_map<uint8_t, Cpu::Instruction, OpcodeHash> instTable;
-    
-public:
-    // Run a single 6502 instruction, return the number of cycles.
-    uint32_t runInst();
-    void reset();
+
+    // Instruction trace logic.
     void dumpRegs();
     void dumpPc();
     void dumpInstructionBytes(int bytes);
     void dumpPPUTiming();
     void instTrace(const std::string& str, int bytes);
+    
+public:
+    // Run a single 6502 instruction, return the number of cycles.
+    uint32_t runInst();
+    void reset();
     Cpu(Nes *system);
     ~Cpu();
 };
