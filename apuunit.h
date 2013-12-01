@@ -11,9 +11,8 @@
 
 #include <cstdint>
 #include <vector>
-#include <cassert>
-#include <iostream>
 #include <memory>
+#include <cassert>
 
 namespace Rnes {
 
