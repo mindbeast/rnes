@@ -23,6 +23,7 @@ TARGET  := $(BINDIR)/$(TARGET)
 CPP_FILES += main.cpp
 CPP_FILES += ppu.cpp
 CPP_FILES += apu.cpp
+CPP_FILES += apuunit.cpp
 CPP_FILES += cpu.cpp
 CPP_FILES += nes.cpp
 CPP_FILES += sdl.cpp
