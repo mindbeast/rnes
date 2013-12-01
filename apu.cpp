@@ -14,26 +14,13 @@
 
 namespace Rnes {
 
-/*
-static float timerGetMs()
-{
-    struct timespec ts;
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
-    return ts.tv_sec * 1000.0f + ts.tv_nsec / 1000000.0f;
-}
-*/
-
 void apuSdlCallback(void *data, uint8_t *stream, int len)
 {
-    //float a = timerGetMs();
     RingBuffer<int16_t> *rb = (RingBuffer<int16_t>*)data;
     uint32_t items = len / sizeof(int16_t); 
     int16_t *outData = (int16_t*)stream;
     
-    //std::cout << "items - rbCount: " << (int)items << " - " << (int)rbCount << std::endl;
     rb->getData(outData, items);
-    //float b = timerGetMs()
-    //std::cout << "time :" << b - a << std::endl;
 }
 
 void Apu::clockLengthAndSweep()
