@@ -345,11 +345,11 @@ int Nes::loadRom(const std::string &filename)
 }
 
 Nes::Nes() : 
-    sdl(new Sdl()),
-    cpu(new Cpu(this)),
-    ppu(new Ppu(this,sdl.get())),
-    apu(new Apu(this, sdl.get())),
-    pad(new Controller(sdl.get()))
+    sdl{new Sdl{}},
+    cpu{new Cpu{this}},
+    ppu{new Ppu{this, sdl.get()}},
+    apu{new Apu{this, sdl.get()}},
+    pad{new Controller{sdl.get()}}
 {}
 
 Nes::~Nes()
