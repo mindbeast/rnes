@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string>
 #include <iostream>
+#include <memory>
 #include "nes.h"
 
 // TODO:
@@ -37,7 +38,7 @@ int main(int argc, char *argv[])
     bool romFileSpecified = false;
 
     for (int i = 0; i < argc; i++) {
-        if (argv[i] == std::string("--rom") || argv[i] == std::string("-r")) {
+        if (argv[i] == string("--rom") || argv[i] == string("-r")) {
             romFile = argv[i+1];
             romFileSpecified = true;
             i += 2;
@@ -49,14 +50,13 @@ int main(int argc, char *argv[])
     }
 
     using namespace Rnes;
-    Nes *nes = new Nes();
+    auto nes = unique_ptr<Nes>{new Nes{}};
     int res = nes->loadRom(romFile);
     if (res) {
         cerr << "Failed to load rom: "<< romFile << "\n";
         exit(1);
     }
     nes->run();
-    delete nes;
     return 0;
 }
 
