@@ -1,25 +1,16 @@
 # tools 
 CPP      = g++
 LD       = g++
-PBC      = protoc
 
 ifdef RELEASE 
-    CPPFLAGS   = -O3 -march=native -flto
-    DEFINES    := NDEBUG
-ifdef PROFILE 
-    CPPFLAGS   += -fno-omit-frame-pointer -ggdb
-endif 
+CPPFLAGS   = -O3 -fno-omit-frame-pointer -ggdb -march=native -flto
+DEFINES    := NDEBUG
 else
-    CPPFLAGS   = -g
+CPPFLAGS   = -g
 endif
-
 CPPFLAGS  += -std=c++11 -Wall -Wno-unused-function
-#CPPFLAGS  += -H
 
 LIBS += SDL2
-LIBS += boost_filesystem
-LIBS += boost_system
-LIBS += protobuf
 
 LDFLAGS = $(addprefix -l, $(LIBS))
 
@@ -37,13 +28,9 @@ CPP_FILES += cpu.cpp
 CPP_FILES += nes.cpp
 CPP_FILES += sdl.cpp
 CPP_FILES += mmc.cpp
-CPP_FILES += rom.cpp
-
-PROTO_FILES += save.proto
 
 # targets 
 OBJS    += $(addsuffix .o, $(basename $(CPP_FILES)))
-OBJS    += $(addsuffix .pb.o, $(basename $(PROTO_FILES)))
 OBJS    := $(addprefix $(BINDIR)/, $(OBJS))
 
 DEPS    := $(addsuffix .d, $(basename $(CPP_FILES)))
@@ -53,13 +40,6 @@ HEADERS := $(wildcard *.h)
 
 PCHS    := $(addsuffix .gch, $(HEADERS))
 PCHS    := $(addprefix $(BINDIR)/, $(PCHS))
-
-GEN_CPP := $(addsuffix .pb.cc, $(basename $(PROTO_FILES)))
-GEN_CPP := $(addprefix $(BINDIR)/, $(GEN_CPP))
-
-GEN_HDR := $(addsuffix .pb.h, $(basename $(PROTO_FILES)))
-GEN_HDR := $(addprefix $(BINDIR)/, $(GEN_HDR))
-
 DEFINES := $(addprefix -D, $(DEFINES))
 
 .PHONY: all 
@@ -81,17 +61,14 @@ $(PCHS) : | $(BINDIR)
 $(DEPS) : | $(BINDIR) 
 
 # build all pch's before compiling cpp files 
-# $(OBJS) : $(PCHS)
+#$(OBJS) : $(PCHS)
 
 # build rules for all source 
-$(BINDIR)/%.pb.o : $(BINDIR)/%.pb.cc $(BINDIR)/%.pb.h
-	$(CPP) $(CPPFLAGS) $(DEFINES) -c $< -o $@
-
 $(BINDIR)/%.o : %.cpp
 	$(CPP) $(CPPFLAGS) $(DEFINES) -c $< -o $@
 
 $(BINDIR)/%.d : %.cpp
-	$(CPP) -MM $(CPPFLAGS) -MT $(BINDIR)/$*.o $< > $@
+	$(CPP) -MM $(CPPFLAGS)  -MT $(BINDIR)/$*.o $< > $@
 
 $(BINDIR)/%.s : %.cpp
 	$(CPP) $(CPPFLAGS) $< -S -fverbose-asm -o $@
@@ -99,9 +76,6 @@ $(BINDIR)/%.s : %.cpp
 $(BINDIR)/%.h.gch : %.h
 	$(CPP) $(CPPFLAGS) -x c++-header $< -o $@
 
-$(BINDIR)/%.pb.cc $(BINDIR)/%.pb.h : %.proto
-	$(PBC) $< --cpp_out=$(BINDIR)
-    
 # pull in dependency info for *existing* .o files
 -include $(DEPS)
 
@@ -109,9 +83,6 @@ $(BINDIR)/%.pb.cc $(BINDIR)/%.pb.h : %.proto
 clean :
 	-rm $(DEPS)
 	-rm $(OBJS)	
-	-rm $(GEN_CPP)
-	-rm $(GEN_HDR)
-#	-rm $(PCHS)
 	-rm $(TARGET)
 	-rmdir $(BINDIR)
 
