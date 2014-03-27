@@ -1,0 +1,4 @@
+
+message SaveGame {
+    optional uint32 foo = 1;
+}
