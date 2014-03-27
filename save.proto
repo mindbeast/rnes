@@ -1,4 +1,23 @@
 
+message CpuState {
+    // 6502 registers
+    optional uint32 a = 1;
+    optional uint32 x = 2;
+    optional uint32 y = 3;
+    
+    // Program counter
+    optional uint32 pc = 4;
+    
+    // stack pointer
+    optional uint32 sp = 5;
+    
+    // cycle count ??
+    optional uint64 cycle = 6;
+    
+    // processor status register
+    optional uint32 status = 7;
+}
+
 message SaveGame {
     optional uint32 foo = 1;
 }
