@@ -45,7 +45,8 @@ OBJS    += $(addsuffix .o, $(basename $(CPP_FILES)))
 OBJS    += $(addsuffix .pb.o, $(basename $(PROTO_FILES)))
 OBJS    := $(addprefix $(BINDIR)/, $(OBJS))
 
-DEPS    := $(addsuffix .d, $(basename $(CPP_FILES)))
+DEPS    += $(addsuffix .d, $(basename $(CPP_FILES)))
+DEPS    += $(addsuffix .pb.d, $(basename $(PROTO_FILES)))
 DEPS    := $(addprefix $(BINDIR)/, $(DEPS))
 
 HEADERS := $(wildcard *.h)
@@ -74,7 +75,12 @@ $(BINDIR) :
 $(TARGET) : $(OBJS) 
 	$(LD) $(CPPFLAGS) $(OBJS) $(LDFLAGS) -o $@ 
 
+# make sure chained files aren't removed
+$(TARGET) : $(GEN_CPP) $(GEN_HDR)
+
 # make sure the bin directory exists before building 
+$(GEN_CPP) : | $(BINDIR)
+$(GEN_HDR) : | $(BINDIR)
 $(OBJS) : | $(BINDIR) 
 $(PCHS) : | $(BINDIR) 
 $(DEPS) : | $(BINDIR) 
@@ -83,8 +89,14 @@ $(DEPS) : | $(BINDIR)
 # $(OBJS) : $(PCHS)
 
 # build rules for all source 
+$(BINDIR)/%.pb.cc $(BINDIR)/%.pb.h : %.proto
+	$(PBC) $< --cpp_out=$(BINDIR)
+
 $(BINDIR)/%.pb.o : $(BINDIR)/%.pb.cc $(BINDIR)/%.pb.h
 	$(CPP) $(CPPFLAGS) $(DEFINES) -c $< -o $@
+
+$(BINDIR)/%.d : $(BINDIR)/%.cc
+	$(CPP) -MM $(CPPFLAGS) -MT $(BINDIR)/$*.o $< > $@
 
 $(BINDIR)/%.o : %.cpp
 	$(CPP) $(CPPFLAGS) $(DEFINES) -c $< -o $@
@@ -92,14 +104,9 @@ $(BINDIR)/%.o : %.cpp
 $(BINDIR)/%.d : %.cpp
 	$(CPP) -MM $(CPPFLAGS) -MT $(BINDIR)/$*.o $< > $@
 
-$(BINDIR)/%.s : %.cpp
-	$(CPP) $(CPPFLAGS) $< -S -fverbose-asm -o $@
-	
 $(BINDIR)/%.h.gch : %.h
 	$(CPP) $(CPPFLAGS) -x c++-header $< -o $@
 
-$(BINDIR)/%.pb.cc $(BINDIR)/%.pb.h : %.proto
-	$(PBC) $< --cpp_out=$(BINDIR)
     
 # pull in dependency info for *existing* .o files
 -include $(DEPS)
@@ -108,7 +115,7 @@ $(BINDIR)/%.pb.cc $(BINDIR)/%.pb.h : %.proto
 clean :
 	-rm $(DEPS)
 	-rm $(OBJS)	
-#	-rm $(GEN_CPP)
+	-rm $(GEN_CPP)
 	-rm $(GEN_HDR)
 #	-rm $(PCHS)
 	-rm $(TARGET)
