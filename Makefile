@@ -37,7 +37,6 @@ CPP_FILES += cpu.cpp
 CPP_FILES += nes.cpp
 CPP_FILES += sdl.cpp
 CPP_FILES += mmc.cpp
-CPP_FILES += rom.cpp
 
 PROTO_FILES += save.proto
 
@@ -109,7 +108,7 @@ $(BINDIR)/%.pb.cc $(BINDIR)/%.pb.h : %.proto
 clean :
 	-rm $(DEPS)
 	-rm $(OBJS)	
-	-rm $(GEN_CPP)
+#	-rm $(GEN_CPP)
 	-rm $(GEN_HDR)
 #	-rm $(PCHS)
 	-rm $(TARGET)
