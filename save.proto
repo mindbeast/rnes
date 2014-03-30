@@ -16,7 +16,8 @@ message CpuState {
 }
 
 message ApuState {
-    repeated uint32 regs = 1;
+    // Apu register file.
+
     optional uint32 sampleRate = 2;
     optional uint32 fourFrameCount = 3;
     optional uint32 fiveFrameCount = 4;
@@ -54,18 +55,129 @@ message PulseState {
     optional uint32 sequencerOffset = 10;
 }
 
-message CpuMemoryState {
+message TriangleState {
+    // length logic
+    optional uint32 lengthCounter   = 1;
     
+    // linear counter logic
+    optional bool linearCounterHalt = 2;
+    optional uint32 linearCounter   = 3;
+
+    // current sample
+    optional uint32 currentSample = 4;
+
+    // timer
+    optional uint32 timerDivider = 5;
+
+    // sequencer offset 
+    optional uint32 sequencerOffset = 6;
+}
+
+message NoiseState {
+    // length logic
+    optional uint32 lengthCounter = 1;
+    
+    // noise shift register
+    optional uint32 shiftRegister = 2;
+    
+    // envelope logic
+    optional uint32 envelope = 3;
+    optional uint32 envelopeDivider = 4;
+    optional bool resetEnvelopeAndDivider = 5;
+
+    // current sample
+    optional uint32 currentSample = 6;
+
+    // timer
+    optional uint32 timerDivider = 7;
+}
+
+message PpuState {
+    optional uint64 cycle = 1;
+    optional uint64 frame = 2;
+    repeated uint32 regs = 3;
+
+    message SpriteState {
+        optional uint32 yCoordMinus1 = 1;
+        optional uint32 tileIndex = 2;
+        optional uint32 attr = 3;
+        optional uint32 xCoord = 4;
+    }
+    repeated SpriteState spriteRam = 4;
+
+    optional uint32 vramToggle = 5;
+    optional uint32 vramFineXScroll = 6;
+    optional uint32 vramCurrentAddr = 7;
+    optional uint32 vramTempAddr = 8;
+
+    optional uint32 vramMachineAddr = 9;
+    optional uint32 vramReadLatch = 10;
+    
+    optional uint32 scrollingMachineState = 11;
+    optional uint32 xScrollOrigin = 12;
+    optional uint32 yScrollOrigin = 13;
+}
+
+message MmcState {
+    message MmcNoneState {}
+    message Mmc1State {
+        optional uint32 controlReg = 1;
+        optional uint32 chr0Bank = 2;
+        optional uint32 chr1Bank = 3;
+        optional uint32 prgBank = 4;
+        optional uint32 shiftRegister = 5;
+    }
+    message Mmc3State {
+        optional uint32 bankSelectReg = 1;
+        optional uint32 mirrorReg = 2;
+        optional uint32 prgRamReg = 3;
+        repeated uint32 bankRegister = 4;
+        optional uint32 irqReloadReg = 5;
+        optional uint32 irqCounterReg = 6;
+        optional bool irqEnabled = 7;
+        optional bool irqPending = 8;
+    }
+    optional MmcNoneState mmcNone = 1;
+    optional Mmc1State mmc1 = 2;
+    optional Mmc3State mmc3 = 3;
+}
+
+message ControllerState {
+    optional uint32 control = 1;
+    optional uint32 shiftReg =  2;
+}
+
+message CpuMemoryState {
+    repeated bytes cpuSram = 1;
+    repeated bytes prgSram = 2;
 }
 
 message VideoMemoryState {
-
+    repeated bytes patternTableMemory = 1;
+    repeated bytes nameTableMemory = 2;
+    repeated bytes paletteMemory = 3;
 }
 
 message SaveGame {
+    // date??
+
+    // 6502 state
     optional CpuState cpu = 1;
+
+    // Audio state
     optional ApuState apu = 2;
-    optional PulseState pulse = 3;
-    optional CpuMemoryState cpuMem = 4;
-    optional VideoMemoryState vidMem = 5;
+    optional PulseState pulseA = 3;
+    optional PulseState pulseB = 4;
+    optional TriangleState triangle = 5;
+    optional NoiseState noise = 6;
+
+    // PPU state
+    optional PpuState ppu = 7;
+    
+    // Controller state.
+    optional ControllerState controller = 8;
+
+    // SRAM state.
+    optional CpuMemoryState cpuMem = 9;
+    optional VideoMemoryState vidMem = 10;
 }
