@@ -39,8 +39,6 @@ public:
 };
 
 class Nes {
-    uint8_t cpuSram[2048] = {0};
-    
     void *rom;
     size_t romSize;
     
