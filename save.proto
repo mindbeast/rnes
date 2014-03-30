@@ -160,24 +160,26 @@ message VideoMemoryState {
 
 message SaveGame {
     // date??
+    optional string saveDate = 1;
+    optional uint64 gameTime = 2;
 
     // 6502 state
-    optional CpuState cpu = 1;
+    optional CpuState cpu = 8;
 
     // Audio state
-    optional ApuState apu = 2;
-    optional PulseState pulseA = 3;
-    optional PulseState pulseB = 4;
-    optional TriangleState triangle = 5;
-    optional NoiseState noise = 6;
+    optional ApuState apu = 9;
+    optional PulseState pulseA = 10;
+    optional PulseState pulseB = 11;
+    optional TriangleState triangle = 12;
+    optional NoiseState noise = 13;
 
     // PPU state
-    optional PpuState ppu = 7;
+    optional PpuState ppu = 14;
     
     // Controller state.
-    optional ControllerState controller = 8;
+    optional ControllerState controller = 15;
 
     // SRAM state.
-    optional CpuMemoryState cpuMem = 9;
-    optional VideoMemoryState vidMem = 10;
+    optional CpuMemoryState cpuMem = 16;
+    optional VideoMemoryState vidMem = 17;
 }
