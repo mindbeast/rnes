@@ -19,9 +19,17 @@ CPPFLAGS  += -std=c++11 -Wall -Wno-unused-function
 LIBS += SDL2
 LIBS += boost_filesystem
 LIBS += boost_system
+LIBS += boost_iostreams
 LIBS += protobuf
+LIBS += crypt
 
-LDFLAGS = $(addprefix -l, $(LIBS))
+LIBDIRS += 
+
+INCDIR += ./bin/
+CPPFLAGS += $(addprefix -I, $(INCDIR))
+
+LDFLAGS += $(addprefix -L, $(LIBDIRS))
+LDFLAGS += $(addprefix -l, $(LIBS))
 
 BINDIR   = ./bin
 VPATH    = $(BINDIR)
