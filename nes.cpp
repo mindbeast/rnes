@@ -19,6 +19,7 @@
 #include "ppu.h"
 #include "apu.h"
 #include "cpu.h"
+#include "memory.h"
 
 namespace Rnes {
 
@@ -85,7 +86,7 @@ uint8_t Controller::read()
 // Core nes class.
 //
 
-uint16_t Nes::translateCpuWindows(uint16_t addr) const
+static uint16_t translateCpuWindows(uint16_t addr)
 {
     // Deal with 3 mirrors of 2k internal RAM: 0x0 - 0x7ff.
     if (addr >= 0x800 && addr < 0x2000) {
@@ -98,7 +99,7 @@ uint16_t Nes::translateCpuWindows(uint16_t addr) const
     return addr;
 }
 
-uint16_t Nes::translatePpuWindows(uint16_t addr) const
+static uint16_t translatePpuWindows(uint16_t addr)
 {
     // Name table mirrors.
     if (addr >= 0x3000 && addr < 0x3f00) {
@@ -148,10 +149,7 @@ void Nes::spriteDmaSetup(uint8_t val)
 void Nes::cpuMemWrite(uint16_t addr, uint8_t val)
 {
     addr = translateCpuWindows(addr);
-    if (addr < 0x800) {
-        cpuMemory[addr] = val;
-    }
-    else if (addr >= ppuRegBase && addr <= ppuRegEnd) {
+    if (addr >= ppuRegBase && addr <= ppuRegEnd) {
         ppu->writeReg(addr - ppuRegBase, val);
     }
     else if (addr == spriteDmaAddr) {
@@ -164,17 +162,14 @@ void Nes::cpuMemWrite(uint16_t addr, uint8_t val)
         apu->writeReg(addr - apuRegBase, val);
     }
     else {
-        mmc->cpuMemWrite(addr, val);
+        cpuMemory->store(addr, val);
     }
 }
 
 uint8_t Nes::cpuMemRead(uint16_t addr)
 {
     addr = translateCpuWindows(addr);
-    if (addr < 0x800) {
-        return cpuMemory[addr];
-    }
-    else if (addr >= ppuRegBase && addr <= ppuRegEnd) {
+    if (addr >= ppuRegBase && addr <= ppuRegEnd) {
         return ppu->readReg(addr - ppuRegBase);
     }
     else if (addr == joypadAddr) {
@@ -184,7 +179,7 @@ uint8_t Nes::cpuMemRead(uint16_t addr)
         return apu->readReg(addr - apuRegBase);
     }
     else {
-        return mmc->cpuMemRead(addr);
+        return cpuMemory->load(addr);
     }
 }
 
@@ -192,14 +187,14 @@ void Nes::vidMemWrite(uint16_t addr, uint8_t val)
 {
     addr = translatePpuWindows(addr);
     assert(addr < videoMemorySize);
-    mmc->vidMemWrite(addr, val);
+    videoMemory->store(addr, val);
 }
 
 uint8_t Nes::vidMemRead(uint16_t addr)
 {
     addr = translatePpuWindows(addr);
     assert(addr < videoMemorySize);
-    return mmc->vidMemRead(addr);
+    return videoMemory->load(addr);
 }
 
 void Nes::notifyScanlineComplete()
@@ -325,14 +320,14 @@ int Nes::loadRom(const std::string &filename)
         case 1:
         {
             std::cout << "Loading MMC1 game." << std::endl;
-            std::unique_ptr<Mmc> mmcLocal(new Mmc1(prgRoms, chrRoms, header->numPrgRamBanks, verticalMirroring));
+            std::unique_ptr<Mmc> mmcLocal(new Mmc1(prgRoms, chrRoms, header->numPrgRamBanks, verticalMirroring, cpuMemory.get(), videoMemory.get()));
             mmc = std::move(mmcLocal);
             break;
         }
         case 4:
         {
             std::cout << "Loading MMC3 game." << std::endl;
-            std::unique_ptr<Mmc> mmcLocal(new Mmc3(prgRoms, chrRoms, header->numPrgRamBanks, verticalMirroring));
+            std::unique_ptr<Mmc> mmcLocal(new Mmc3(prgRoms, chrRoms, header->numPrgRamBanks, verticalMirroring, cpuMemory.get(), videoMemory.get()));
             mmc = std::move(mmcLocal);
             break;
         }
@@ -341,6 +336,8 @@ int Nes::loadRom(const std::string &filename)
             assert(0);
             break;
     }
+    cpuMemory->setMmc(mmc.get());
+    videoMemory->setMmc(mmc.get());
     return 0;
 }
 
@@ -349,7 +346,9 @@ Nes::Nes() :
     cpu{new Cpu{this}},
     ppu{new Ppu{this, sdl.get()}},
     apu{new Apu{this, sdl.get()}},
-    pad{new Controller{sdl.get()}}
+    pad{new Controller{sdl.get()}},
+    cpuMemory{new CpuMemory{}},
+    videoMemory{new VideoMemory{}}
 {}
 
 Nes::~Nes()

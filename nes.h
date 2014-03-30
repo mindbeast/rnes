@@ -18,6 +18,8 @@ class Sdl;
 class Cpu;
 class Ppu;
 class Apu;
+class CpuMemory;
+class VideoMemory;
 
 class Controller {
     Sdl *sdl;
@@ -37,11 +39,7 @@ public:
 };
 
 class Nes {
-    static const uint32_t cpuMemorySize = 1 << 16;
-    static const uint32_t videoMemorySize = 1 << 14;
-
-    uint8_t vidMemory[videoMemorySize] = {0};
-    uint8_t cpuMemory[cpuMemorySize] = {0};
+    uint8_t cpuSram[2048] = {0};
     
     void *rom;
     size_t romSize;
@@ -57,10 +55,9 @@ class Nes {
     std::unique_ptr<Ppu> ppu;
     std::unique_ptr<Apu> apu;
     std::unique_ptr<Controller> pad;
+    std::unique_ptr<CpuMemory> cpuMemory;
+    std::unique_ptr<VideoMemory> videoMemory;
     std::unique_ptr<Mmc> mmc;
-    
-    uint16_t translateCpuWindows(uint16_t addr) const;
-    uint16_t translatePpuWindows(uint16_t addr) const;
     
     uint32_t spriteDmaExecute();
     void spriteDmaSetup(uint8_t val);
