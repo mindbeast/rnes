@@ -40,7 +40,7 @@ uint8_t VideoMemory::load(uint16_t addr) const
         return nameTableMemory[addr - 0x2000];
     }
     else if (addr >= 0x3f00 and addr <= 0x3f1f) {
-        return paletteMemory[addr];
+        return paletteMemory[addr - 0x3f00];
     }
     else {
         return mmc->vidMemRead(addr);
@@ -53,7 +53,7 @@ void VideoMemory::store(uint16_t addr, uint8_t data)
         nameTableMemory[addr - 0x2000] = data;    
     }
     else if (addr >= 0x3f00 and addr <= 0x3f1f) {
-        paletteMemory[addr] = data;    
+        paletteMemory[addr - 0x3f00] = data;    
     }
     else {
         mmc->vidMemWrite(addr, data);
