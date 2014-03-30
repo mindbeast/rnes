@@ -11,13 +11,61 @@ message CpuState {
     // stack pointer
     optional uint32 sp = 5;
     
-    // cycle count ??
-    optional uint64 cycle = 6;
-    
     // processor status register
-    optional uint32 status = 7;
+    optional uint32 status = 6;
+}
+
+message ApuState {
+    repeated uint32 regs = 1;
+    optional uint32 sampleRate = 2;
+    optional uint32 fourFrameCount = 3;
+    optional uint32 fiveFrameCount = 4;
+    optional uint32 frameDivider = 5;
+    optional uint32 step = 6;
+    optional uint32 halfTimerDivider = 7;
+    optional uint32 samplerDivider = 8;
+    optional float clksPerSample = 9;
+    optional float currentSampleClk = 10;
+    optional uint32 nextSampleCountdown = 11;
+}
+
+message PulseState {
+    optional bool primary = 1;
+
+    // length logic
+    optional uint32 lengthCounter = 2;
+    
+    // envelope logic
+    optional uint32 envelope = 3;
+    optional uint32 envelopeDivider = 4;
+    optional bool resetEnvelopeAndDivider = 5;
+
+    // sweep logic
+    optional bool resetSweepDivider = 6;
+    optional uint32 sweepDivider = 7;
+
+    // current sample
+    optional uint32 currentSample = 8;
+    
+    // timer
+    optional uint32 timerDivider = 9 ;
+
+    // sequencer offset 
+    optional uint32 sequencerOffset = 10;
+}
+
+message CpuMemoryState {
+    
+}
+
+message VideoMemoryState {
+
 }
 
 message SaveGame {
-    optional uint32 foo = 1;
+    optional CpuState cpu = 1;
+    optional ApuState apu = 2;
+    optional PulseState pulse = 3;
+    optional CpuMemoryState cpuMem = 4;
+    optional VideoMemoryState vidMem = 5;
 }
