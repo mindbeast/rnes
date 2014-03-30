@@ -53,6 +53,7 @@ std::string md5OfFile(std::string file)
     stream >> contents;
     
     auto ret = std::string(crypt_r(contents.c_str(), salt.c_str(), &data));
+    for_each(begin(ret), end(ret), [](char& c) { if (c == '/' or c == '.') { c = 'x'; }});
     return ret.substr(salt.size());
 }
 
