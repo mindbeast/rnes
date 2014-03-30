@@ -132,7 +132,6 @@ class Mmc3 : public Mmc {
     bool irqEnabled = false;
     bool irqPending = false;
 
-
     bool isPrgSramEnabled() const {
         return (prgRamReg & (1 << 7)) != 0;
     }
