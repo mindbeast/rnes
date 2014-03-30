@@ -1,4 +1,5 @@
 #include "mmc.h"
+#include "memory.h"
 #include <cassert>
 #include <iostream>
 
@@ -20,7 +21,7 @@ static const uint16_t nameTableSize = 0x400;
 // Shared MMC logic.
 //
 
-uint16_t Mmc::translateHorizMirror(uint16_t addr)
+static uint16_t translateHorizMirror(uint16_t addr)
 {
     if (addr >= nameTable1 && addr < (nameTable2)) {
         addr = (addr & (nameTableSize - 1)) + nameTable0;
@@ -31,7 +32,7 @@ uint16_t Mmc::translateHorizMirror(uint16_t addr)
     return addr;
 }
 
-uint16_t Mmc::translateVerticalMirror(uint16_t addr)
+static uint16_t translateVerticalMirror(uint16_t addr)
 {
     if (addr >= nameTable3 && addr < (nameTable3 + nameTableSize)) {
         addr = (addr & (nameTableSize - 1)) + nameTable1;
@@ -42,7 +43,7 @@ uint16_t Mmc::translateVerticalMirror(uint16_t addr)
     return addr;
 }
 
-uint16_t Mmc::translateSingleMirror(uint16_t addr)
+static uint16_t translateSingleMirror(uint16_t addr)
 {
     if (addr >= nameTable0 and addr < nameTable3 + nameTableSize) {
         addr = (addr & (nameTableSize - 1)) + nameTable0; 
@@ -74,23 +75,11 @@ MmcNone::~MmcNone()
 void MmcNone::cpuMemWrite(uint16_t addr, uint8_t val)
 {
     assert(addr >= mmcCpuAddrBase);
-    // sram region
-    if ((numPrgRam == 1) and
-        (addr >= prgSramBase) and
-        (addr < prgSramBase + prgSramSize)) {
-        cpuSram[addr - prgSramBase] = val;                
-    }
 }
 
 uint8_t MmcNone::cpuMemRead(uint16_t addr)
 {
     assert(addr >= mmcCpuAddrBase);
-    // sram region
-    if ((numPrgRam == 1) and
-        (addr >= prgSramBase) and
-        (addr < prgSramBase + prgSramSize)) {
-        return cpuSram[addr - prgSramBase];
-    }
     // prg rom 1
     if ((addr >= 0x8000) and
         (addr < 0x8000 + 0x4000) and
@@ -122,27 +111,12 @@ uint16_t MmcNone::vidAddrTranslate(uint16_t addr)
 
 void MmcNone::vidMemWrite(uint16_t addr, uint8_t val)
 {
-    addr = vidAddrTranslate(addr);
-    if (addr >= 0x2000 and addr < 0x2000 + 0x1000) {
-        vidSram[addr] = val;    
-    }
-    else if (addr >= 0x3f00 and addr <= 0x3f1f) {
-        vidSram[addr] = val;    
-    }
 }
 
 uint8_t MmcNone::vidMemRead(uint16_t addr)
 {
-    addr = vidAddrTranslate(addr);
-    if ((charRoms.size() == 1) and
-        (addr < 0x2000)) {
+    if ((charRoms.size() == 1) and (addr < 0x2000)) {
         return *(charRoms[0] + addr);
-    }
-    if ((addr >= 0x2000) and (addr < 0x2000 + 0x1000)) {
-        return vidSram[addr];
-    }
-    if (addr >= 0x3f00 and addr <= 0x3f1f) {
-        return vidSram[addr];
     }
     return 0;
 }
@@ -154,10 +128,14 @@ uint8_t MmcNone::vidMemRead(uint16_t addr)
 Mmc1::Mmc1(const std::vector<uint8_t*> &prgRoms,
            const std::vector<uint8_t*> &chrRoms,
            uint32_t prgRam,
-           bool vertMirror) :
+           bool vertMirror,
+           CpuMemory *cpuMemoryRef,
+           VideoMemory *videoMemoryRef) :
     progRoms{prgRoms},
     charRoms{chrRoms},
-    numPrgRam{prgRam}
+    numPrgRam{prgRam},
+    cpuMemory{cpuMemoryRef},
+    videoMemory{videoMemoryRef}
 {
     assert(numPrgRam == 0 || numPrgRam == 1);
 }
@@ -199,13 +177,6 @@ void Mmc1::updateMmcRegister(uint16_t addr, uint8_t shiftRegister)
 
 void Mmc1::cpuMemWrite(uint16_t addr, uint8_t val)
 {
-    assert(addr >= mmcCpuAddrBase);
-    // sram region
-    if ((isPrgSramEnabled()) and
-        (addr >= prgSramBase) and
-        (addr < prgSramBase + prgSramSize)) {
-        cpuSram[addr - prgSramBase] = val;                
-    }
     // shift register writes
     if ((addr >= shiftWriteAddr) and (addr <= shiftWriteAddrLimit)) {
         // initialize shift register when 7th bit is set.
@@ -232,12 +203,6 @@ void Mmc1::cpuMemWrite(uint16_t addr, uint8_t val)
 uint8_t Mmc1::cpuMemRead(uint16_t addr)
 {
     assert(addr >= mmcCpuAddrBase);
-    // sram region
-    if ((isPrgSramEnabled()) and
-        (addr >= prgSramBase) and
-        (addr < prgSramBase + prgSramSize)) {
-        return cpuSram[addr - prgSramBase];
-    }
     // prg rom @ 0x8000
     uint32_t prgRomMode = getPrgRomMode();
     uint8_t bank = prgBank & 0xf;
@@ -285,33 +250,25 @@ void Mmc1::vidMemWrite(uint16_t addr, uint8_t val)
     bool chr8kMode = getChrRomMode() == 0;
     if ((charRoms.size() == 0) and (addr < 0x1000)) {
         if (chr8kMode) {
-            vidSram[addr] = val;
+            videoMemory->patternTableMemory[addr] = val;
         }
         else {
-            vidSram[addr + ((chr0Bank & 0x1) ? 0x1000 : 0)] = val;
+            videoMemory->patternTableMemory[addr + ((chr0Bank & 0x1) ? 0x1000 : 0)] = val;
         }
     }
     else if ((charRoms.size() == 0) and (addr >= 0x1000) and (addr <= 0x1fff)) {
         if (chr8kMode) {
-            vidSram[addr] = val;
+            videoMemory->patternTableMemory[addr] = val;
         }
         else {
-            vidSram[addr - 0x1000 + ((chr1Bank & 0x1) ? 0x1000 : 0)] = val;
+            videoMemory->patternTableMemory[addr - 0x1000 + ((chr1Bank & 0x1) ? 0x1000 : 0)] = val;
         }
 
-    }
-    else if (addr >= 0x2000 and addr < 0x2000 + 0x1000) {
-        vidSram[addr] = val;    
-    }
-    else if (addr >= 0x3f00 and addr <= 0x3f1f) {
-        vidSram[addr] = val;    
     }
 }
 
 uint8_t Mmc1::vidMemRead(uint16_t addr)
 {
-    addr = vidAddrTranslate(addr);
-
     bool chr8kMode = getChrRomMode() == 0;
     if (charRoms.size() > 0) {
         // chr rom @ 0x0
@@ -335,25 +292,20 @@ uint8_t Mmc1::vidMemRead(uint16_t addr)
     } 
     else {
         if (chr8kMode) {
-            return vidSram[addr];
+            if (addr < 0x2000) {
+                return videoMemory->patternTableMemory[addr];
+            }
         }
         else {
             if (addr < 0x1000) {
-                return vidSram[addr + (chr0Bank & 0x1) ? 0x1000 : 0];
+                return videoMemory->patternTableMemory[addr + (chr0Bank & 0x1) ? 0x1000 : 0];
             }
             if ((addr >= 0x1000) and (addr <= 0x1fff)) {
-                return vidSram[addr - 0x1000 + (chr1Bank & 0x1) ? 0x1000 : 0];
+                return videoMemory->patternTableMemory[addr - 0x1000 + (chr1Bank & 0x1) ? 0x1000 : 0];
             }
         }
     }
 
-    // name table sram
-    if ((addr >= 0x2000) and (addr <= 0x2fff)) {
-        return vidSram[addr];
-    }
-    if (addr >= 0x3f00 and addr <= 0x3f1f) {
-        return vidSram[addr];
-    }
     return 0;
 }
 
@@ -377,10 +329,14 @@ uint16_t Mmc1::vidAddrTranslate(uint16_t addr)
 Mmc3::Mmc3(const std::vector<uint8_t*> &prgRoms,
            const std::vector<uint8_t*> &chrRoms,
            uint32_t prgRam,
-           bool vertMirror) :
+           bool vertMirror, 
+           CpuMemory *cpuMemoryRef,
+           VideoMemory *videoMemoryRef) :
     progRoms{prgRoms},
     charRoms{chrRoms},
-    numPrgRam{prgRam}
+    numPrgRam{prgRam},
+    cpuMemory{cpuMemoryRef},
+    videoMemory{videoMemoryRef}
 {
     assert(numPrgRam == 0 || numPrgRam == 1);
 }
@@ -393,6 +349,15 @@ void Mmc3::updateBankRegister(uint8_t val)
     bankRegister[bankSelect] = val;
     if (debug) {
         std::cerr << "bank " << std::hex << (int)bankSelect << ": " << (int)val << std::endl;
+    }
+}
+
+uint8_t *Mmc3::get1kChrBank(uint32_t bank) {
+    if (charRoms.size() == 0) {
+        return &videoMemory->patternTableMemory[bank * 1024];
+    }
+    else {
+        return charRoms[bank >> 3] + (bank & 0x7) * 1024;
     }
 }
 
@@ -410,14 +375,6 @@ void Mmc3::cpuMemWrite(uint16_t addr, uint8_t val)
 {
     assert(addr >= mmcCpuAddrBase);
 
-    // sram region
-    if (isPrgSramEnabled() and 
-        isPrgSramWriteable() and
-        (addr >= prgSramBase) and
-        (addr < prgSramBase + prgSramSize)) {
-        cpuSram[addr - prgSramBase] = val;                
-    }
-    
     // mmc control register writes
     if (addr >= 0x8000 and addr <= 0x9fff) {
         if (addr & 0x1) {
@@ -457,13 +414,6 @@ void Mmc3::cpuMemWrite(uint16_t addr, uint8_t val)
 uint8_t Mmc3::cpuMemRead(uint16_t addr)
 {
     assert(addr >= mmcCpuAddrBase);
-
-    // sram region
-    if (isPrgSramEnabled() and
-        (addr >= prgSramBase) and
-        (addr < prgSramBase + prgSramSize)) {
-        return cpuSram[addr - prgSramBase];
-    }
 
     // prg rom @ 0x8000
     if ((addr >= 0x8000) and (addr < 0x8000 + 0x2000)) {
@@ -527,35 +477,17 @@ uint8_t *Mmc3::getChrPointer(uint16_t addr)
 
 void Mmc3::vidMemWrite(uint16_t addr, uint8_t val)
 {
-    addr = vidAddrTranslate(addr);
-
     // chr banks
     if (charRoms.size() == 0 and addr <= 0x1fff) {
         *getChrPointer(addr) = val;
     }
-    else if (addr >= 0x2000 and addr < 0x2000 + 0x1000) {
-        vidSram[addr] = val;    
-    }
-    else if (addr >= 0x3f00 and addr <= 0x3f1f) {
-        vidSram[addr] = val;    
-    }
-
 }
 
 uint8_t Mmc3::vidMemRead(uint16_t addr)
 {
-    addr = vidAddrTranslate(addr);
-
     // chr banks
     if (addr <= 0x1fff) {
         return *getChrPointer(addr);
-    }
-    // name table sram
-    else if ((addr >= 0x2000) and (addr <= 0x2fff)) {
-        return vidSram[addr];
-    }
-    else if (addr >= 0x3f00 and addr <= 0x3f1f) {
-        return vidSram[addr];
     }
     return 0;
 }

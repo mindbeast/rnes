@@ -37,6 +37,7 @@ CPP_FILES += cpu.cpp
 CPP_FILES += nes.cpp
 CPP_FILES += sdl.cpp
 CPP_FILES += mmc.cpp
+CPP_FILES += memory.cpp
 
 PROTO_FILES += save.proto
 
