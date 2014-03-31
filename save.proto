@@ -158,10 +158,19 @@ message VideoMemoryState {
     repeated bytes paletteMemory = 3;
 }
 
+message DmaState {
+    optional bool spriteDmaMode = 1;
+    optional uint32 spriteDmaCycle = 2;
+    optional uint32 spriteDmaSourceAddr = 3;
+}
+
 message SaveGame {
     // date??
     optional string saveDate = 1;
     optional uint64 gameTime = 2;
+    
+    // Dma state
+    optional DmaState dma = 7;
 
     // 6502 state
     optional CpuState cpu = 8;
