@@ -42,7 +42,7 @@ class Nes {
     void *rom;
     size_t romSize;
     
-    bool spriteDmaMode = true;
+    bool spriteDmaMode = false;
     uint32_t spriteDmaCycle = 0;
     uint16_t spriteDmaSourceAddr = 0;
 
