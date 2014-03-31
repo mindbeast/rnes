@@ -20,6 +20,7 @@ class Nes;
 class Pulse;
 class Triangle;
 class Noise;
+class ApuState;
 template <class T> class RingBuffer;
 
 class Apu {
@@ -167,6 +168,10 @@ public:
     void run(int cycles);
     void writeReg(uint32_t reg, uint8_t val);
     uint8_t readReg(uint32_t reg);
+
+    void save(ApuState &pb);
+    void restore(ApuState &pb);
+
     Apu(Nes *parent, Sdl *audio);
     Apu() = delete;
     Apu(const Apu&) = delete;
