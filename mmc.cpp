@@ -1,7 +1,9 @@
-#include "mmc.h"
-#include "memory.h"
 #include <cassert>
 #include <iostream>
+
+#include "mmc.h"
+#include "memory.h"
+#include "save.pb.h"
 
 namespace Rnes {
 
@@ -120,6 +122,10 @@ uint8_t MmcNone::vidMemRead(uint16_t addr)
     }
     return 0;
 }
+
+void MmcNone::save(MmcState &pb) {}
+
+void MmcNone::restore(MmcState &pb) {}
 
 //
 // MMC1 logic
@@ -322,6 +328,26 @@ uint16_t Mmc1::vidAddrTranslate(uint16_t addr)
     return 0; 
 }
 
+void Mmc1::save(MmcState &pb)
+{
+    MmcState_Mmc1State *mmc1 = pb.mutable_mmc1();
+    mmc1->set_controlreg(controlReg);
+    mmc1->set_chr0bank(chr0Bank);
+    mmc1->set_chr1bank(chr1Bank);
+    mmc1->set_prgbank(prgBank);
+    mmc1->set_shiftregister(shiftRegister);
+}
+
+void Mmc1::restore(MmcState &pb)
+{
+    const MmcState_Mmc1State &mmc1 = pb.mmc1();
+    controlReg = mmc1.controlreg();
+    chr0Bank = mmc1.chr0bank();
+    chr1Bank = mmc1.chr1bank();
+    prgBank = mmc1.prgbank();
+    shiftRegister = mmc1.shiftregister();
+}
+
 //
 // MMC3 logic
 //
@@ -509,6 +535,48 @@ void Mmc3::notifyScanlineComplete()
 bool Mmc3::isRequestingIrq()
 {
     return irqEnabled and irqPending;
+}
+
+void Mmc3::save(MmcState &pb)
+{
+    /*
+    // internal control registers
+    uint8_t bankSelectReg = 1 << 6;
+    uint8_t mirrorReg = 0;
+    uint8_t prgRamReg = 0;
+    uint8_t bankRegister[8] = {0};
+    uint8_t irqReloadReg = 0;
+    uint8_t irqCounterReg = 0;
+    bool irqEnabled = false;
+    bool irqPending = false;
+    */
+
+    MmcState_Mmc3State *mmc3 = pb.mutable_mmc3();
+    mmc3->set_bankselectreg(bankSelectReg);
+    mmc3->set_mirrorreg(mirrorReg);
+    mmc3->set_prgramreg(prgRamReg);
+    mmc3->set_bankregister(bankRegister, 8);
+    mmc3->set_irqreloadreg(irqReloadReg);
+    mmc3->set_irqcounterreg(irqCounterReg);
+    mmc3->set_irqenabled(irqEnabled);
+    mmc3->set_irqpending(irqPending);
+
+}
+
+void Mmc3::restore(MmcState &pb)
+{
+    const MmcState_Mmc3State &mmc3 = pb.mmc3();
+    bankSelectReg = mmc3.bankselectreg();
+    mirrorReg = mmc3.mirrorreg();
+    prgRamReg = mmc3.prgramreg();
+    const std::string &bytes = mmc3.bankregister();
+    for (unsigned i = 0; i < bytes.size(); i++) {
+        bankRegister[i] = bytes[i];
+    }
+    irqReloadReg = mmc3.irqreloadreg();
+    irqCounterReg = mmc3.irqcounterreg();
+    irqEnabled = mmc3.irqenabled();
+    irqPending = mmc3.irqpending();
 }
 
 };

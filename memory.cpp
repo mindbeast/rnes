@@ -36,19 +36,19 @@ void CpuMemory::store(uint16_t addr, uint8_t data)
 
 void CpuMemory::save(CpuMemoryState &pb)
 {
-    pb.set_cpusram(0, cpuSram, cpuSramSize); 
-    pb.set_prgsram(0, prgSram, prgSramSize); 
+    pb.set_cpusram(cpuSram, cpuSramSize); 
+    pb.set_prgsram(prgSram, prgSramSize); 
 }
 
 void CpuMemory::restore(CpuMemoryState &pb)
 {
-    const std::string& bytes = pb.cpusram(0);
-    for (int i = 0; i < pb.cpusram_size(); i++) {
+    const std::string& bytes = pb.cpusram();
+    for (unsigned i = 0; i < bytes.size(); i++) {
         cpuSram[i] = bytes[i]; 
     }
 
-    const std::string& prgBytes = pb.prgsram(0);
-    for (int i = 0; i < pb.prgsram_size(); i++) {
+    const std::string& prgBytes = pb.prgsram();
+    for (unsigned i = 0; i < prgBytes.size(); i++) {
         prgSram[i] = prgBytes[i]; 
     }
 }
@@ -82,27 +82,27 @@ void VideoMemory::store(uint16_t addr, uint8_t data)
 
 void VideoMemory::save(VideoMemoryState &pb)
 {
-    pb.set_patterntablememory(0, patternTableMemory, patternTableSize); 
-    pb.set_nametablememory(0, nameTableMemory, nameTableMemorySize); 
-    pb.set_palettememory(0, paletteMemory, paletteSize);
+    pb.set_patterntablememory(patternTableMemory, patternTableSize); 
+    pb.set_nametablememory(nameTableMemory, nameTableMemorySize); 
+    pb.set_palettememory(paletteMemory, paletteSize);
 }
 
 void VideoMemory::restore(VideoMemoryState &pb)
 {
     {
-        const std::string& bytes = pb.patterntablememory(0);
-        for (int i = 0; i < pb.patterntablememory_size(); i++) {
+        const std::string& bytes = pb.patterntablememory();
+        for (unsigned i = 0; i < bytes.size(); i++) {
             patternTableMemory[i] = bytes[i]; 
         }
     }
     {
-        const std::string& bytes = pb.nametablememory(0);
-        for (int i = 0; i < pb.nametablememory_size(); i++) {
+        const std::string& bytes = pb.nametablememory();
+        for (unsigned i = 0; i < bytes.size(); i++) {
             nameTableMemory[i] = bytes[i]; 
         }
     {
-        const std::string& bytes = pb.palettememory(0);
-        for (int i = 0; i < pb.palettememory_size(); i++) {
+        const std::string& bytes = pb.palettememory();
+        for (unsigned i = 0; i < bytes.size(); i++) {
             paletteMemory[i] = bytes[i]; 
         }
     }
