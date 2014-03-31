@@ -141,7 +141,7 @@ message MmcState {
         optional uint32 bankSelectReg = 1;
         optional uint32 mirrorReg = 2;
         optional uint32 prgRamReg = 3;
-        repeated uint32 bankRegister = 4;
+        optional bytes bankRegister = 4;
         optional uint32 irqReloadReg = 5;
         optional uint32 irqCounterReg = 6;
         optional bool irqEnabled = 7;
@@ -158,14 +158,14 @@ message ControllerState {
 }
 
 message CpuMemoryState {
-    repeated bytes cpuSram = 1;
-    repeated bytes prgSram = 2;
+    optional bytes cpuSram = 1;
+    optional bytes prgSram = 2;
 }
 
 message VideoMemoryState {
-    repeated bytes patternTableMemory = 1;
-    repeated bytes nameTableMemory = 2;
-    repeated bytes paletteMemory = 3;
+    optional bytes patternTableMemory = 1;
+    optional bytes nameTableMemory = 2;
+    optional bytes paletteMemory = 3;
 }
 
 message DmaState {

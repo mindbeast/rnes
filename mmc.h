@@ -26,6 +26,7 @@ static const uint16_t paletteSize = 0x20;
 
 class VideoMemory;
 class CpuMemory;
+class MmcState;
 
 class Mmc {
 public:
@@ -40,6 +41,8 @@ public:
     virtual bool isPrgSramEnabled() const = 0;
     virtual bool isPrgSramWriteable() const { return isPrgSramEnabled(); }
     virtual uint16_t vidAddrTranslate(uint16_t addr) = 0;
+    virtual void save(MmcState &pb) = 0;
+    virtual void restore(MmcState &pb) = 0;
 
 protected:
     static const bool debug = false;
@@ -66,6 +69,8 @@ public:
     void vidMemWrite(uint16_t addr, uint8_t val);
     uint8_t vidMemRead(uint16_t addr);
     uint16_t vidAddrTranslate(uint16_t addr);
+    void save(MmcState &pb);
+    void restore(MmcState &pb);
 };
 
 class Mmc1 : public Mmc {
@@ -113,6 +118,8 @@ public:
     void vidMemWrite(uint16_t addr, uint8_t val);
     uint8_t vidMemRead(uint16_t addr);
     uint16_t vidAddrTranslate(uint16_t addr);
+    void save(MmcState &pb);
+    void restore(MmcState &pb);
 };
 
 class Mmc3 : public Mmc {
@@ -184,8 +191,10 @@ public:
     uint8_t cpuMemRead(uint16_t addr);
     void vidMemWrite(uint16_t addr, uint8_t val);
     uint8_t vidMemRead(uint16_t addr);
-    virtual void notifyScanlineComplete();
-    virtual bool isRequestingIrq();
+    void notifyScanlineComplete();
+    bool isRequestingIrq();
+    void save(MmcState &pb);
+    void restore(MmcState &pb);
 };
 
 };
