@@ -1,3 +1,4 @@
+package Rnes;
 
 message CpuState {
     // 6502 registers
@@ -13,21 +14,9 @@ message CpuState {
     
     // processor status register
     optional uint32 status = 6;
-}
-
-message ApuState {
-    // Apu register file.
-
-    optional uint32 sampleRate = 2;
-    optional uint32 fourFrameCount = 3;
-    optional uint32 fiveFrameCount = 4;
-    optional uint32 frameDivider = 5;
-    optional uint32 step = 6;
-    optional uint32 halfTimerDivider = 7;
-    optional uint32 samplerDivider = 8;
-    optional float clksPerSample = 9;
-    optional float currentSampleClk = 10;
-    optional uint32 nextSampleCountdown = 11;
+    
+    // cycle count
+    optional uint64 cycle = 7;
 }
 
 message PulseState {
@@ -90,6 +79,27 @@ message NoiseState {
 
     // timer
     optional uint32 timerDivider = 7;
+}
+
+message ApuState {
+    // Apu register file.
+    repeated uint32 reg = 1;
+    optional uint32 sampleRate = 2;
+    optional uint32 fourFrameCount = 3;
+    optional uint32 fiveFrameCount = 4;
+    optional uint32 frameDivider = 5;
+    optional uint32 step = 6;
+    optional uint32 halfTimerDivider = 7;
+    optional uint32 samplerDivider = 8;
+    optional float clksPerSample = 9;
+    optional float currentSampleClk = 10;
+    optional uint32 nextSampleCountdown = 11;
+
+    // Child units.
+    optional PulseState pulseA = 20;
+    optional PulseState pulseB = 21;
+    optional TriangleState triangle = 22;
+    optional NoiseState noise = 23;
 }
 
 message PpuState {
@@ -177,18 +187,14 @@ message SaveGame {
 
     // Audio state
     optional ApuState apu = 9;
-    optional PulseState pulseA = 10;
-    optional PulseState pulseB = 11;
-    optional TriangleState triangle = 12;
-    optional NoiseState noise = 13;
 
     // PPU state
-    optional PpuState ppu = 14;
+    optional PpuState ppu = 10;
     
     // Controller state.
-    optional ControllerState controller = 15;
+    optional ControllerState controller = 11;
 
     // SRAM state.
-    optional CpuMemoryState cpuMem = 16;
-    optional VideoMemoryState vidMem = 17;
+    optional CpuMemoryState cpuMem = 12;
+    optional VideoMemoryState vidMem = 13;
 }

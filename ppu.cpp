@@ -6,14 +6,15 @@
 //  Copyright (c) 2013 Riley Andrews. All rights reserved.
 //
 
-#include "ppu.h"
-#include "nes.h"
-#include "sdl.h"
-
 #include <time.h>
 #include <sys/time.h>
 #include <assert.h>
 #include <cstring>
+
+#include "ppu.h"
+#include "nes.h"
+#include "sdl.h"
+#include "save.pb.h"
 
 static const uint32_t vblankScanline = 241;
 static const uint32_t vblankScanelineEnd = 261;
@@ -156,6 +157,62 @@ uint16_t Ppu::loadPatternTile(uint16_t addr)
         ret |= ((1u << i) & b) << (i + 1);
     }
     return ret;
+}
+
+void Ppu::save(PpuState &pb)
+{
+    pb.set_cycle(cycle);     
+    pb.set_frame(frame);
+    
+    for (int i = 0; i < REG_COUNT; i++) {
+        pb.add_regs(regs[i]);
+    }
+    
+    for (int i = 0; i < spriteRamSize; i++) {
+        PpuState_SpriteState *sprite = pb.add_spriteram();
+        sprite->set_ycoordminus1(spriteRam[i].yCoordMinus1);
+        sprite->set_tileindex(spriteRam[i].tileIndex);        
+        sprite->set_attr(spriteRam[i].attr);
+        sprite->set_xcoord(spriteRam[i].xCoord);
+    }
+
+    pb.set_vramtoggle(vramToggle);
+    pb.set_vramfinexscroll(vramFineXScroll);
+    pb.set_vramcurrentaddr(vramCurrentAddr);
+    pb.set_vramtempaddr(vramTempAddr);
+    pb.set_vrammachineaddr(vramMachineAddr);
+    pb.set_vramreadlatch(vramReadLatch);
+    pb.set_scrollingmachinestate(scrollingMachineState);
+    pb.set_xscrollorigin(xScrollOrigin);
+    pb.set_yscrollorigin(yScrollOrigin);
+}
+
+void Ppu::restore(PpuState &pb)
+{
+    cycle = pb.cycle();
+    frame = pb.frame();
+
+    for (int i = 0; i < pb.regs_size(); i++) {
+        regs[i] =  pb.regs(i);
+    }
+
+    for (int i = 0; i < pb.spriteram_size(); i++) {
+        const PpuState_SpriteState& sprite = pb.spriteram(i);
+        spriteRam[i].yCoordMinus1 = sprite.ycoordminus1();
+        spriteRam[i].tileIndex = sprite.tileindex();
+        spriteRam[i].attr = sprite.attr();
+        spriteRam[i].xCoord = sprite.xcoord();
+    } 
+    
+    vramToggle = pb.vramtoggle();
+    vramFineXScroll = pb.vramfinexscroll();
+    vramCurrentAddr = pb.vramcurrentaddr();
+    vramTempAddr = pb.vramtempaddr();
+    vramMachineAddr = pb.vrammachineaddr();
+    vramReadLatch = pb.vramreadlatch();
+    scrollingMachineState = pb.scrollingmachinestate();
+    xScrollOrigin = pb.xscrollorigin();
+    yScrollOrigin = pb.yscrollorigin();
 }
 
 Ppu::Ppu(Nes *parent, Sdl *disp) : nes{parent}, sdl{disp}

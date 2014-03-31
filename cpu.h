@@ -16,6 +16,7 @@
 namespace Rnes {
 
 class Nes;
+class CpuState;
 
 struct OpcodeHash {
     size_t operator()(uint8_t opcode) const {
@@ -263,6 +264,11 @@ public:
     // Run a single 6502 instruction, return the number of cycles.
     uint32_t runInst();
     void reset();
+
+    // Save/Restore from protobuf 
+    void save(CpuState& pb);
+    void restore(CpuState& pb);
+    
     Cpu(Nes *system);
     ~Cpu();
 };

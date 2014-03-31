@@ -14,6 +14,7 @@
 
 #include "cpu.h"
 #include "nes.h"
+#include "save.pb.h"
 
 // stack pointer base
 static const uint16_t base = 0x0100;
@@ -1196,6 +1197,47 @@ void Cpu::instTrace(const std::string& str, int bytes)
         dumpPPUTiming();
         std::cerr << "\n";
     }
+}
+
+// Save/Restore from protobuf 
+void Cpu::save(CpuState& pb)
+{
+    // Registers
+    pb.set_a(a);
+    pb.set_x(x);
+    pb.set_y(y);
+
+    // Program counter
+    pb.set_pc(pc);
+    
+    // stack pointer
+    pb.set_sp(sp);
+    
+    // cycle count
+    pb.set_cycle(cycle);
+    
+    // processor status register
+    pb.set_status(status);
+}
+
+void Cpu::restore(CpuState& pb)
+{
+    // Registers
+    a = pb.a();
+    x = pb.x();
+    y = pb.y();
+
+    // Program counter
+    pc = pb.pc();
+    
+    // stack pointer
+    sp = pb.sp();
+    
+    // cycle count
+    sp = pb.cycle();
+    
+    // processor status register
+    status = pb.status();
 }
 
 Cpu::Cpu(Nes *system)

@@ -15,6 +15,7 @@ namespace Rnes {
 
 class Nes;
 class Sdl;
+class PpuState;
 
 class Ppu {
 public:
@@ -140,6 +141,9 @@ public:
     void writeReg(uint32_t reg, uint8_t val);
     uint8_t readReg(uint32_t reg);
 
+    void save(PpuState &pb);
+    void restore(PpuState &pb);
+
     Ppu(Nes *parent, Sdl *disp);
     Ppu() = delete;
     Ppu(const Ppu&) = delete;
@@ -158,12 +162,14 @@ private:
         ATTR_BG_PRIOR   = 1 << 5,
         ATTR_COLOR_MASK = 3 << 0,
     };
+
+    static const int spriteRamSize = 64;
     struct {
         uint8_t yCoordMinus1;
         uint8_t tileIndex;
         uint8_t attr;
         uint8_t xCoord;
-    } spriteRam[64] = {{0}};
+    } spriteRam[spriteRamSize] = {{0}};
 
     uint32_t vramToggle = 0;
     uint32_t vramFineXScroll = 0;
