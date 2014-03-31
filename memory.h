@@ -13,6 +13,8 @@
 
 namespace Rnes {
 
+class CpuMemoryState;
+class VideoMemoryState;
 class Mmc;
 
 class CpuMemory {
@@ -30,6 +32,10 @@ public:
     void store(uint16_t addr, uint8_t data);
 
     void setMmc(Mmc *mmcPtr) { mmc = mmcPtr; }
+
+    void save(CpuMemoryState &pb);
+    void restore(CpuMemoryState &pb);
+    
     CpuMemory() {} 
     CpuMemory(const CpuMemory&) = delete;
     ~CpuMemory() {} 
@@ -52,6 +58,10 @@ public:
     void store(uint16_t addr, uint8_t data);
 
     void setMmc(Mmc *mmcPtr) { mmc = mmcPtr; }
+
+    void save(VideoMemoryState &pb);
+    void restore(VideoMemoryState &pb);
+    
     VideoMemory() {} 
     VideoMemory(const VideoMemory&) = delete;
     ~VideoMemory() {} 
