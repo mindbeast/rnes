@@ -16,6 +16,10 @@
 
 namespace Rnes {
 
+class PulseState;
+class TriangleState;
+class NoiseState;
+
 static const
 uint8_t lengthCounterLut[] = {
      10, 254,  20,   2,
@@ -133,6 +137,9 @@ public:
     Pulse(const Pulse&) = delete;
     ~Pulse() {}
 
+    void save(PulseState &pb);
+    void restore(PulseState &pb);
+
     bool isNonZeroLength() const {
         return lengthCounter != 0;
     }
@@ -237,6 +244,10 @@ public:
     {}
     Triangle(const Pulse&) = delete;
     ~Triangle() {}
+
+    void save(TriangleState &pb);
+    void restore(TriangleState &pb);
+
     void clockLength();
     void clockLinearCounter();
     void updateSample();
@@ -337,6 +348,10 @@ public:
     {}
     Noise(const Pulse&) = delete;
     ~Noise() {}
+
+    void save(NoiseState &pb);
+    void restore(NoiseState &pb);
+    
     void clockEnvelope();
     void clockLength();
     void updateSample();

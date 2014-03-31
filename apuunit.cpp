@@ -6,8 +6,10 @@
 //  Copyright (c) 2013 Riley Andrews. All rights reserved.
 //
 
-#include "apuunit.h"
 #include <cmath>
+
+#include "apuunit.h"
+#include "save.pb.h"
 
 namespace Rnes {
 
@@ -50,6 +52,44 @@ void Pulse::envelopeDividerClock()
     else if (isEnvelopeLoopSet()) {
         envelope = 15; 
     }
+}
+
+void Pulse::save(PulseState &pb)
+{
+    // length logic
+    pb.set_lengthcounter(lengthCounter);
+    
+    // envelope logic
+    pb.set_envelope(envelope);
+    pb.set_envelopedivider(envelopeDivider);
+    pb.set_resetenvelopeanddivider(resetEnvelopeAndDivider);
+
+    // sweep logic
+    pb.set_resetsweepdivider(resetSweepDivider);
+    pb.set_sweepdivider(sweepDivider);
+
+    // current sample
+    pb.set_currentsample(currentSample);
+    
+    // timer
+    pb.set_timerdivider(timerDivider);
+
+    // sequencer offset 
+    pb.set_sequenceroffset(sequencerOffset);
+}
+
+void Pulse::restore(PulseState &pb)
+{
+    lengthCounter = pb.lengthcounter();
+    envelope = pb.envelope();
+    envelopeDivider = pb.envelopedivider();
+    resetEnvelopeAndDivider = pb.resetenvelopeanddivider();
+    
+    resetSweepDivider = pb.resetsweepdivider();
+    sweepDivider = pb.sweepdivider();
+    currentSample = pb.currentsample();
+    timerDivider = pb.timerdivider();
+    sequencerOffset = pb.sequenceroffset();
 }
 
 uint8_t Pulse::getCurrentSample() const
@@ -131,6 +171,37 @@ void Pulse::clockTimer()
     timerDivider = (timerDivider + 1) % getTimerPeriod();
 }
 
+void Triangle::save(TriangleState &pb)
+{
+    // length logic
+    pb.set_lengthcounter(lengthCounter);
+    
+    // linear counter logic
+    pb.set_linearcounterhalt(linearCounterHalt);
+    pb.set_linearcounter(linearCounter);
+
+    // current sample
+    pb.set_currentsample(currentSample);
+
+    // timer
+    pb.set_timerdivider(timerDivider);
+
+    // sequencer offset 
+    pb.set_sequenceroffset(sequencerOffset);
+}
+
+void Triangle::restore(TriangleState &pb)
+{
+    lengthCounter = pb.lengthcounter();
+    linearCounterHalt = pb.linearcounterhalt();
+    linearCounter = pb.linearcounter();
+    
+    currentSample = pb.currentsample();
+    timerDivider = pb.timerdivider();
+    
+    sequencerOffset = pb.sequenceroffset();
+}
+
 void Triangle::clockLength()
 {
     // Length
@@ -208,6 +279,38 @@ uint8_t Noise::getCurrentSample() const
         return 0;
     }
     return getVolume();
+}
+
+
+void Noise::save(NoiseState &pb)
+{
+    // length logic
+    pb.set_lengthcounter(lengthCounter);
+    
+    // noise shift register
+    pb.set_shiftregister(shiftRegister);
+    
+    // envelope logic
+    pb.set_envelope(envelope);
+    pb.set_envelopedivider(envelopeDivider);
+    pb.set_resetenvelopeanddivider(resetEnvelopeAndDivider);
+
+    // current sample
+    pb.set_currentsample(currentSample);
+
+    // timer
+    pb.set_timerdivider(timerDivider);
+}
+
+void Noise::restore(NoiseState &pb)
+{
+    lengthCounter = pb.lengthcounter();
+    shiftRegister = pb.shiftregister();
+    envelope = pb.envelope();
+    envelopeDivider = pb.envelopedivider();
+    resetEnvelopeAndDivider = pb.resetenvelopeanddivider();
+    currentSample = pb.currentsample();
+    timerDivider = pb.timerdivider();
 }
 
 void Noise::clockEnvelope()

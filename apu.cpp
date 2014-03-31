@@ -6,11 +6,13 @@
 //  Copyright (c) 2013 Riley Andrews. All rights reserved.
 //
 
+#include <cmath>
+
 #include "apu.h"
 #include "apuunit.h"
 #include "sdl.h"
 #include "ringbuffer.h"
-#include <cmath>
+#include "save.pb.h"
 
 namespace Rnes {
 
@@ -210,6 +212,16 @@ uint8_t Apu::readReg(uint32_t reg)
         result |= noise->isNonZeroLength() ? STATUS_CHANNEL4_LENGTH : 0;
     }
     return result;
+}
+
+void Apu::save(ApuState &pb)
+{
+
+}
+
+void Apu::restore(ApuState &pb)
+{
+
 }
 
 Apu::Apu(Nes *parent, Sdl *audio) :
