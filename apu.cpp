@@ -238,7 +238,7 @@ void Apu::save(ApuState &pb)
     */
     
     for (unsigned i = 0; i < REG_COUNT; i++) {
-        pb.set_reg(i, regs[i]);
+        pb.add_reg(regs[i]);
     }
     pb.set_samplerate(sampleRate);
     pb.set_fourframecount(fourFrameCount);
