@@ -1234,7 +1234,7 @@ void Cpu::restore(const CpuState& pb)
     sp = pb.sp();
     
     // cycle count
-    sp = pb.cycle();
+    cycle = pb.cycle();
     
     // processor status register
     status = pb.status();
