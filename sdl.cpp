@@ -178,6 +178,12 @@ void Sdl::parseInput()
                     case SDLK_m:
                         button = BUTTON_B;
                         break;
+                    case SDLK_k:
+                        button = BUTTON_SAVE;
+                        break;
+                    case SDLK_l:
+                        button = BUTTON_RESTORE;
+                        break;
                     default:
                         continue;
                 }

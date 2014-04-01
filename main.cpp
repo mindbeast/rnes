@@ -14,6 +14,7 @@
 #include <boost/program_options.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
+#include <boost/iostreams/device/file.hpp>
 #include <crypt.h>
 #include <sys/types.h>
 #include <pwd.h>
@@ -103,34 +104,52 @@ void verifyRomExists(std::string romFile)
     }
     cerr << "rom md5: " << md5OfFile(romFile) << endl;
 }
-
+namespace Rnes {
 void loadNesState(Nes *nes, std::string saveFile)
 {
     namespace io = boost::iostreams;
+    namespace fs = boost::filesystem;
     using namespace std;
 
-    io::stream<io::mapped_file_source> stream(saveFile);
-    unique_ptr<SaveState> gameState{new SaveState{}};
-    
-    // Read out state from save file.
-    gameState->ParseFromIstream(&stream);
-    
-    // Restore nes state.
+    try {
+        io::stream<io::mapped_file_source> stream(saveFile);
+        unique_ptr<SaveState> gameState{new SaveState{}};
+        
+        // Read out state from save file.
+        gameState->ParseFromIstream(&stream);
+        
+        // Restore nes state.
+        nes->restore(*gameState.get());
+        
+        cerr << "State restored" << endl;
+    }
+    catch (const std::ios_base::failure &exception) {
+        cerr << "Exception: " << exception.what() << endl;
+    }
 }
 
 void saveNesState(Nes *nes, std::string saveFile)
 {
     namespace io = boost::iostreams;
+    namespace fs = boost::filesystem;
     using namespace std;
 
-    io::stream<io::mapped_file_sink> stream(saveFile);
-    unique_ptr<SaveState> gameState{new SaveState{}};
+    try {
+        io::stream<io::file_sink> stream(saveFile);
+        unique_ptr<SaveState> gameState{new SaveState{}};
     
-    // Save nes state.
-    
-    
-    // Serialize save to file.
-    gameState->SerializeToOstream(&stream);
+        // Save nes state.
+        nes->save(*gameState.get());
+        
+        // Serialize save to file.
+        gameState->SerializeToOstream(&stream);
+        
+        cerr << "state saved." << endl;
+    }
+    catch (const std::ios_base::failure &exception) {
+        cerr << "Exception: " << exception.what() << endl;
+    }
+}
 }
 
 int main(int argc, char *argv[])
