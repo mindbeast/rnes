@@ -21,6 +21,8 @@
 #include "save.pb.h"
 #include "nes.h"
 
+using namespace Rnes;
+
 // TODO:
 // - mmcs: nrom, mmc5
 // - redo sprite/bg ordering. It's currently broken.
@@ -102,6 +104,35 @@ void verifyRomExists(std::string romFile)
     cerr << "rom md5: " << md5OfFile(romFile) << endl;
 }
 
+void loadNesState(Nes *nes, std::string saveFile)
+{
+    namespace io = boost::iostreams;
+    using namespace std;
+
+    io::stream<io::mapped_file_source> stream(saveFile);
+    unique_ptr<SaveState> gameState{new SaveState{}};
+    
+    // Read out state from save file.
+    gameState->ParseFromIstream(&stream);
+    
+    // Restore nes state.
+}
+
+void saveNesState(Nes *nes, std::string saveFile)
+{
+    namespace io = boost::iostreams;
+    using namespace std;
+
+    io::stream<io::mapped_file_sink> stream(saveFile);
+    unique_ptr<SaveState> gameState{new SaveState{}};
+    
+    // Save nes state.
+    
+    
+    // Serialize save to file.
+    gameState->SerializeToOstream(&stream);
+}
+
 int main(int argc, char *argv[])
 {
     using namespace std;
@@ -130,7 +161,6 @@ int main(int argc, char *argv[])
         // verify the rom file exists.
         verifyRomExists(romFile);
 
-        using namespace Rnes;
         auto nes = unique_ptr<Nes>{new Nes{}};
         int res = nes->loadRom(romFile);
         if (res) {
@@ -152,6 +182,8 @@ int main(int argc, char *argv[])
         cerr << "Unknown Exception!" << endl;
         return -1;
     }
+
+    google::protobuf::ShutdownProtobufLibrary();
     return 0;
 }
 

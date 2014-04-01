@@ -1220,7 +1220,7 @@ void Cpu::save(CpuState& pb)
     pb.set_status(status);
 }
 
-void Cpu::restore(CpuState& pb)
+void Cpu::restore(const CpuState& pb)
 {
     // Registers
     a = pb.a();

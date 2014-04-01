@@ -142,7 +142,7 @@ public:
     uint8_t readReg(uint32_t reg);
 
     void save(PpuState &pb);
-    void restore(PpuState &pb);
+    void restore(const PpuState &pb);
 
     Ppu(Nes *parent, Sdl *disp);
     Ppu() = delete;

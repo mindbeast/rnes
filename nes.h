@@ -20,6 +20,8 @@ class Ppu;
 class Apu;
 class CpuMemory;
 class VideoMemory;
+class SaveState;
+class ControllerState;
 
 class Controller {
     Sdl *sdl;
@@ -30,6 +32,10 @@ class Controller {
 public:
     Controller(Sdl *inpt) : sdl{inpt} {}
     ~Controller() {}
+
+    void save(ControllerState &pb);
+    void restore(const ControllerState &pb);
+
     void setShiftReg();
     void write(uint8_t val);
     uint8_t read();
@@ -75,6 +81,9 @@ public:
     int loadRom(const std::string &filename);
     void run();
 
+    void save(SaveState &pb);
+    void restore(const SaveState &pb);
+    
     Nes();
     ~Nes();
     Nes& operator=(const Nes&) = delete;

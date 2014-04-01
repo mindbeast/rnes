@@ -267,7 +267,7 @@ public:
 
     // Save/Restore from protobuf 
     void save(CpuState& pb);
-    void restore(CpuState& pb);
+    void restore(const CpuState& pb);
     
     Cpu(Nes *system);
     ~Cpu();

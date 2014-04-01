@@ -174,7 +174,7 @@ message DmaState {
     optional uint32 spriteDmaSourceAddr = 3;
 }
 
-message SaveGame {
+message SaveState {
     // date??
     optional string saveDate = 1;
     optional uint64 gameTime = 2;
