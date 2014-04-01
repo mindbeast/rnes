@@ -243,6 +243,15 @@ void Nes::run()
         cycles += cpuCycles;
         if ((cycles % inputCycles) == 0) {
             sdl->parseInput();
+
+            void loadNesState(Nes *nes, std::string saveFile);
+            void saveNesState(Nes *nes, std::string saveFile);
+            if (sdl->getButtonState(Sdl::BUTTON_SAVE)) {
+                saveNesState(this, "save_tmp");
+            }
+            if (sdl->getButtonState(Sdl::BUTTON_RESTORE)) {
+                loadNesState(this, "save_tmp");
+            }
         }
     }
 }
@@ -252,6 +261,10 @@ void Nes::save(SaveState &pb)
     // date??
     
     // Dma state
+    DmaState *dma = pb.mutable_dma();
+    dma->set_spritedmamode(spriteDmaMode);
+    dma->set_spritedmacycle(spriteDmaCycle);
+    dma->set_spritedmasourceaddr(spriteDmaSourceAddr);
 
     // 6502 state
     cpu->save(*pb.mutable_cpu());
@@ -275,6 +288,9 @@ void Nes::restore(const SaveState &pb)
     // date??
     
     // Dma State
+    spriteDmaMode = pb.dma().spritedmamode();
+    spriteDmaCycle = pb.dma().spritedmacycle();
+    spriteDmaSourceAddr = pb.dma().spritedmasourceaddr();
 
     // 6502 state.
     cpu->restore(pb.cpu());

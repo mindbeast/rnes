@@ -29,6 +29,8 @@ public:
         BUTTON_SELECT,
         BUTTON_A,
         BUTTON_B,
+        BUTTON_SAVE,
+        BUTTON_RESTORE,
         BUTTON_COUNT,
     };
 
