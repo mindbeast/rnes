@@ -216,12 +216,79 @@ uint8_t Apu::readReg(uint32_t reg)
 
 void Apu::save(ApuState &pb)
 {
+    // Save sub-units.
+    pulseA->save(*pb.mutable_pulsea());
+    pulseB->save(*pb.mutable_pulseb());
+    triangle->save(*pb.mutable_triangle());
+    noise->save(*pb.mutable_noise());
 
+    /*
+    // Apu register file.
+    repeated uint32 reg = 1;
+    optional uint32 sampleRate = 2;
+    optional uint32 fourFrameCount = 3;
+    optional uint32 fiveFrameCount = 4;
+    optional uint32 frameDivider = 5;
+    optional uint32 step = 6;
+    optional uint32 halfTimerDivider = 7;
+    optional uint32 samplerDivider = 8;
+    optional float clksPerSample = 9;
+    optional float currentSampleClk = 10;
+    optional uint32 nextSampleCountdown = 11;
+    */
+    
+    for (unsigned i = 0; i < REG_COUNT; i++) {
+        pb.set_reg(i, regs[i]);
+    }
+    pb.set_samplerate(sampleRate);
+    pb.set_fourframecount(fourFrameCount);
+    pb.set_fiveframecount(fiveFrameCount);
+    pb.set_framedivider(frameDivider);
+    pb.set_step(step);
+    pb.set_halftimerdivider(halfTimerDivider);
+    pb.set_samplerdivider(samplerDivider);
+    pb.set_clkspersample(clksPerSample);
+    pb.set_currentsampleclk(currentSampleClk);
+    pb.set_nextsamplecountdown(nextSampleCountdown);
 }
 
-void Apu::restore(ApuState &pb)
+void Apu::restore(const ApuState &pb)
 {
+    // Restore sub-units.
+    pulseA->restore(pb.pulsea());    
+    pulseB->restore(pb.pulseb());
+    triangle->restore(pb.triangle());
+    noise->restore(pb.noise());
+    
+    /*
+    // Apu register file.
+    repeated uint32 reg = 1;
+    optional uint32 sampleRate = 2;
+    optional uint32 fourFrameCount = 3;
+    optional uint32 fiveFrameCount = 4;
+    optional uint32 frameDivider = 5;
+    optional uint32 step = 6;
+    optional uint32 halfTimerDivider = 7;
+    optional uint32 samplerDivider = 8;
+    optional float clksPerSample = 9;
+    optional float currentSampleClk = 10;
+    optional uint32 nextSampleCountdown = 11;
+    */
+    
+    for (int i = 0; i < pb.reg_size(); i++) {
+        regs[i] = pb.reg(i);
+    }
 
+    sampleRate = pb.samplerate();
+    fourFrameCount = pb.fourframecount();
+    fiveFrameCount = pb.fiveframecount();
+    frameDivider = pb.framedivider();
+    step = pb.step();
+    halfTimerDivider = pb.halftimerdivider();
+    samplerDivider = pb.samplerdivider();
+    clksPerSample = pb.clkspersample();
+    currentSampleClk = pb.currentsampleclk();
+    nextSampleCountdown = pb.nextsamplecountdown();
 }
 
 Apu::Apu(Nes *parent, Sdl *audio) :

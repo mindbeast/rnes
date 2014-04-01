@@ -187,7 +187,7 @@ void Ppu::save(PpuState &pb)
     pb.set_yscrollorigin(yScrollOrigin);
 }
 
-void Ppu::restore(PpuState &pb)
+void Ppu::restore(const PpuState &pb)
 {
     cycle = pb.cycle();
     frame = pb.frame();

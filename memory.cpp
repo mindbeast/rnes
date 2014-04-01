@@ -40,7 +40,7 @@ void CpuMemory::save(CpuMemoryState &pb)
     pb.set_prgsram(prgSram, prgSramSize); 
 }
 
-void CpuMemory::restore(CpuMemoryState &pb)
+void CpuMemory::restore(const CpuMemoryState &pb)
 {
     const std::string& bytes = pb.cpusram();
     for (unsigned i = 0; i < bytes.size(); i++) {
@@ -87,7 +87,7 @@ void VideoMemory::save(VideoMemoryState &pb)
     pb.set_palettememory(paletteMemory, paletteSize);
 }
 
-void VideoMemory::restore(VideoMemoryState &pb)
+void VideoMemory::restore(const VideoMemoryState &pb)
 {
     {
         const std::string& bytes = pb.patterntablememory();

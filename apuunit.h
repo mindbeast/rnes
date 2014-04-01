@@ -138,7 +138,7 @@ public:
     ~Pulse() {}
 
     void save(PulseState &pb);
-    void restore(PulseState &pb);
+    void restore(const PulseState &pb);
 
     bool isNonZeroLength() const {
         return lengthCounter != 0;
@@ -246,7 +246,7 @@ public:
     ~Triangle() {}
 
     void save(TriangleState &pb);
-    void restore(TriangleState &pb);
+    void restore(const TriangleState &pb);
 
     void clockLength();
     void clockLinearCounter();
@@ -350,7 +350,7 @@ public:
     ~Noise() {}
 
     void save(NoiseState &pb);
-    void restore(NoiseState &pb);
+    void restore(const NoiseState &pb);
     
     void clockEnvelope();
     void clockLength();

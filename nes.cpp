@@ -20,6 +20,7 @@
 #include "apu.h"
 #include "cpu.h"
 #include "memory.h"
+#include "save.pb.h"
 
 namespace Rnes {
 
@@ -40,6 +41,18 @@ static const uint16_t apuRegEnd = apuRegBase + Apu::REG_COUNT - 1;
 //
 // Controller implementation.
 //
+
+void Controller::save(ControllerState &pb)
+{
+    pb.set_control(control);
+    pb.set_shiftreg(shiftReg);
+}
+
+void Controller::restore(const ControllerState &pb)
+{
+    control = pb.control(); 
+    shiftReg = pb.shiftreg();
+}
 
 void Controller::setShiftReg()
 {
@@ -232,6 +245,52 @@ void Nes::run()
             sdl->parseInput();
         }
     }
+}
+
+void Nes::save(SaveState &pb)
+{
+    // date??
+    
+    // Dma state
+
+    // 6502 state
+    cpu->save(*pb.mutable_cpu());
+
+    // Audio state
+    apu->save(*pb.mutable_apu());
+
+    // PPU state
+    ppu->save(*pb.mutable_ppu());
+    
+    // Controller state.
+    pad->save(*pb.mutable_controller());
+
+    // SRAM state.
+    cpuMemory->save(*pb.mutable_cpumem());
+    videoMemory->save(*pb.mutable_vidmem());
+}
+
+void Nes::restore(const SaveState &pb)
+{
+    // date??
+    
+    // Dma State
+
+    // 6502 state.
+    cpu->restore(pb.cpu());
+    
+    // Audio state.
+    apu->restore(pb.apu());
+    
+    // PPU state.
+    ppu->restore(pb.ppu());
+    
+    // Controller state.
+    pad->restore(pb.controller());
+
+    // SRAM state.
+    cpuMemory->restore(pb.cpumem());
+    videoMemory->restore(pb.vidmem());
 }
 
 struct NesHeader {

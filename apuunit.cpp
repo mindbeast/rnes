@@ -78,7 +78,7 @@ void Pulse::save(PulseState &pb)
     pb.set_sequenceroffset(sequencerOffset);
 }
 
-void Pulse::restore(PulseState &pb)
+void Pulse::restore(const PulseState &pb)
 {
     lengthCounter = pb.lengthcounter();
     envelope = pb.envelope();
@@ -190,7 +190,7 @@ void Triangle::save(TriangleState &pb)
     pb.set_sequenceroffset(sequencerOffset);
 }
 
-void Triangle::restore(TriangleState &pb)
+void Triangle::restore(const TriangleState &pb)
 {
     lengthCounter = pb.lengthcounter();
     linearCounterHalt = pb.linearcounterhalt();
@@ -302,7 +302,7 @@ void Noise::save(NoiseState &pb)
     pb.set_timerdivider(timerDivider);
 }
 
-void Noise::restore(NoiseState &pb)
+void Noise::restore(const NoiseState &pb)
 {
     lengthCounter = pb.lengthcounter();
     shiftRegister = pb.shiftregister();

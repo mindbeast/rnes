@@ -34,7 +34,7 @@ public:
     void setMmc(Mmc *mmcPtr) { mmc = mmcPtr; }
 
     void save(CpuMemoryState &pb);
-    void restore(CpuMemoryState &pb);
+    void restore(const CpuMemoryState &pb);
     
     CpuMemory() {} 
     CpuMemory(const CpuMemory&) = delete;
@@ -60,7 +60,7 @@ public:
     void setMmc(Mmc *mmcPtr) { mmc = mmcPtr; }
 
     void save(VideoMemoryState &pb);
-    void restore(VideoMemoryState &pb);
+    void restore(const VideoMemoryState &pb);
     
     VideoMemory() {} 
     VideoMemory(const VideoMemory&) = delete;

@@ -170,7 +170,7 @@ public:
     uint8_t readReg(uint32_t reg);
 
     void save(ApuState &pb);
-    void restore(ApuState &pb);
+    void restore(const ApuState &pb);
 
     Apu(Nes *parent, Sdl *audio);
     Apu() = delete;
