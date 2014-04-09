@@ -555,7 +555,7 @@ void Mmc3::save(MmcState &pb)
     mmc3->set_bankselectreg(bankSelectReg);
     mmc3->set_mirrorreg(mirrorReg);
     mmc3->set_prgramreg(prgRamReg);
-    mmc3->set_bankregister(bankRegister, 8);
+    mmc3->set_bankregister(bankRegister, bankRegisterCount);
     mmc3->set_irqreloadreg(irqReloadReg);
     mmc3->set_irqcounterreg(irqCounterReg);
     mmc3->set_irqenabled(irqEnabled);

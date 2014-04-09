@@ -133,7 +133,8 @@ class Mmc3 : public Mmc {
     uint8_t bankSelectReg = 1 << 6;
     uint8_t mirrorReg = 0;
     uint8_t prgRamReg = 0;
-    uint8_t bankRegister[8] = {0};
+    static const uint32_t bankRegisterCount = 8;
+    uint8_t bankRegister[bankRegisterCount] = {0};
     uint8_t irqReloadReg = 0;
     uint8_t irqCounterReg = 0;
     bool irqEnabled = false;

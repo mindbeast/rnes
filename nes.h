@@ -10,6 +10,7 @@
 #define __NES_H__
 
 #include <memory>
+#include <string>
 
 namespace Rnes {
 
@@ -47,6 +48,7 @@ public:
 class Nes {
     void *rom;
     size_t romSize;
+    std::string romFile;
     
     bool spriteDmaMode = false;
     uint32_t spriteDmaCycle = 0;

@@ -100,12 +100,12 @@ void VideoMemory::restore(const VideoMemoryState &pb)
         for (unsigned i = 0; i < bytes.size(); i++) {
             nameTableMemory[i] = bytes[i]; 
         }
+    }
     {
         const std::string& bytes = pb.palettememory();
         for (unsigned i = 0; i < bytes.size(); i++) {
             paletteMemory[i] = bytes[i]; 
         }
-    }
     }
 }
 
