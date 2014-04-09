@@ -246,11 +246,13 @@ void Nes::run()
 
             void loadNesState(Nes *nes, std::string saveFile);
             void saveNesState(Nes *nes, std::string saveFile);
+            std::string getGameSaveDir(std::string &romFile);
+
             if (sdl->getButtonState(Sdl::BUTTON_SAVE)) {
-                saveNesState(this, "save_tmp");
+                saveNesState(this, getGameSaveDir(romFile));
             }
             if (sdl->getButtonState(Sdl::BUTTON_RESTORE)) {
-                loadNesState(this, "save_tmp");
+                loadNesState(this, getGameSaveDir(romFile));
             }
         }
     }
@@ -354,6 +356,7 @@ int Nes::loadRom(const std::string &filename)
     if (result == -1) {
         return -1;
     }
+    romFile = filename;
     const NesHeader *header = (const NesHeader*)rom;
     std::cerr << "Loading rom.. " << std::endl;
     std::cerr << "rom banks: " << (int)header->numRomBanks << std::endl;

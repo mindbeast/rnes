@@ -43,6 +43,7 @@ void displayHelpAndQuit()
     exit(1);
 }
 
+namespace Rnes {
 std::string md5OfFile(std::string file) 
 {
     std::string salt = "$1$$";
@@ -71,6 +72,14 @@ std::string getUserHomeDir()
     using namespace std;
     string homeDir(pwdRet->pw_dir);
     return homeDir;
+}
+
+std::string getGameSaveDir(std::string &romFile) 
+{
+    std::string homeDir = getUserHomeDir();
+    std::string md5 = md5OfFile(romFile);
+
+    return homeDir + "/.rnes/" + md5 + "/save";
 }
 
 void setupDirectories(std::string romMd5) 
@@ -104,7 +113,6 @@ void verifyRomExists(std::string romFile)
     }
     cerr << "rom md5: " << md5OfFile(romFile) << endl;
 }
-namespace Rnes {
 void loadNesState(Nes *nes, std::string saveFile)
 {
     namespace io = boost::iostreams;
@@ -194,6 +202,10 @@ int main(int argc, char *argv[])
         nes->run();
     }
     catch (const fs::filesystem_error& exception) {
+        cerr << "Exception: " << exception.what() << endl;
+        return -1;
+    }
+    catch (const std::exception& exception) {
         cerr << "Exception: " << exception.what() << endl;
         return -1;
     }
