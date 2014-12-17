@@ -141,6 +141,8 @@ void saveNesState(Nes *nes, std::string saveFile)
     namespace io = boost::iostreams;
     namespace fs = boost::filesystem;
     using namespace std;
+    
+    // Useless comment.
 
     try {
         io::stream<io::file_sink> stream(saveFile);
