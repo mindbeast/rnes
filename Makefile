@@ -4,7 +4,7 @@ LD       = g++
 PBC      = protoc
 
 ifdef RELEASE 
-    CPPFLAGS   = -O3 -march=native -flto
+    CPPFLAGS   = -O3 -flto
     DEFINES    := NDEBUG
 ifdef PROFILE 
     CPPFLAGS   += -fno-omit-frame-pointer -ggdb
