@@ -1,4 +1,5 @@
 [![Build Status](https://drone.io/github.com/randrews7/rnes/status.png)](https://drone.io/github.com/randrews7/rnes/latest)
+<br\>
 Very bare NES emulator for linux. Written in c++11 and using sdl for video and sound. Rnes
 has only been tested on a few no-mmc games, mmc1, and mmc3 games. Proven to work:
 
