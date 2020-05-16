@@ -7,7 +7,7 @@ trigger:
 - master
 
 pool:
-  vmImage: 'Ubuntu-16.04'
+  vmImage: 'Ubuntu-18.04'
 
 steps:
 - script: |
@@ -17,6 +17,5 @@ steps:
     sudo apt-get install libprotobuf-dev 
     sudo apt-get install libsdl2-dev
     sudo apt-get install libboost-iostreams-dev
-    dpkg --listfiles libsdl2-dev
     make
   displayName: 'make'
