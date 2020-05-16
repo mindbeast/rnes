@@ -1,3 +1,6 @@
 #!/bin/bash
-FILES=$(find . -iname *.h -o -iname *.cpp)
-echo $FILES | xargs clang-format-8 -style=file -i -fallback-style=none
+
+set -eux
+FILES=$(find . -name "*.h" -o -name "*.cpp")
+echo $FILES
+clang-format-8 -style=file -i -fallback-style=none $FILES
