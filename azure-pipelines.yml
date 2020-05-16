@@ -12,6 +12,6 @@ pool:
 steps:
 - script: |
     sudo apt-get install libboost-filesystem-dev
-    sudo apt-get install protobuf
+    sudo apt-get install protobuf-compiler
     make
   displayName: 'make'
