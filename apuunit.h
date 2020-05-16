@@ -2,8 +2,6 @@
 //  apuunit.h
 //  rnes
 //
-//  Created by Riley Andrews on 12/1/13.
-//  Copyright (c) 2013 Riley Andrews. All rights reserved.
 //
 
 #ifndef __APUUNIT_H__

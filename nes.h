@@ -2,8 +2,6 @@
 //  nes.h
 //  rnes
 //
-//  Created by Riley Andrews on 7/6/13.
-//  Copyright (c) 2013 Riley Andrews. All rights reserved.
 //
 
 #ifndef __NES_H__
