@@ -11,6 +11,6 @@ pool:
 
 steps:
 - script: |
-    sudo apt-get install boost-filesystem
+    sudo apt-get install libboost-filesystem-dev
     make
   displayName: 'make'
