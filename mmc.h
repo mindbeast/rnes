@@ -1,7 +1,5 @@
 //  rnes
 //
-//  Created by Riley Andrews on 11/10/13.
-//  Copyright (c) 2013 Riley Andrews. All rights reserved.
 //
 
 #ifndef __MMC_H__
