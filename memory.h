@@ -2,8 +2,6 @@
 //  memory.h
 //  rnes
 //
-//  Created by Riley Andrews on 3/29/14.
-//  Copyright (c) 2014 Riley Andrews. All rights reserved.
 //
 
 #ifndef __MEMORY_H__

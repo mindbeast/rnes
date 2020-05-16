@@ -2,8 +2,6 @@
 //  apu.h
 //  rnes
 //
-//  Created by Riley Andrews on 7/6/13.
-//  Copyright (c) 2013 Riley Andrews. All rights reserved.
 //
 
 #ifndef __APU_H__
@@ -31,13 +29,13 @@ public:
         CHANNEL1_SWEEP,        // epppnsss (enable, period, negate, shift)
         CHANNEL1_FREQUENCY,    // llllllll (lower 8 of period)
         CHANNEL1_LENGTH,       // -----hhh (upper 3 of period)
-        
+
         // pulse wave channel b
         CHANNEL2_VOLUME_DECAY,
         CHANNEL2_SWEEP,
         CHANNEL2_FREQUENCY,
         CHANNEL2_LENGTH,
-        
+
         // triangle wave channel
         CHANNEL3_LINEAR_COUNTER,
         CHANNEL3_UNUSED_A,
@@ -49,29 +47,29 @@ public:
         CHANNEL4_UNUSED_B,
         CHANNEL4_FREQUENCY,
         CHANNEL4_LENGTH,
-        
+
         // pcm channel
         CHANNEL5_PLAY_MODE,
         CHANNEL5_DELTA_COUNTER_LOAD_REGISTER,
         CHANNEL5_ADDR_LOAD_REGISTER,
         CHANNEL5_LENGTH_REGISTER,
-        
+
         // this register is pushed to another module
         SPR_RAM_REG_UNUSED,
-        
+
         // apu control register
         CONTROL_STATUS,
-        
+
         // joypad register (not used here)
         JOYPAD_1,
-        
+
         // softclock register
         SOFTCLOCK,
-        
+
         // not a register
         REG_COUNT,
     };
-    
+
     enum StatusReg {
         STATUS_CHANNEL1_LENGTH     = 1 << 0,
         STATUS_CHANNEL2_LENGTH     = 1 << 1,
