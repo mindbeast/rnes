@@ -13,5 +13,6 @@ steps:
 - script: |
     sudo apt-get install libboost-filesystem-dev
     sudo apt-get install protobuf-compiler
+    sudo apt-get install libprotobuf-dev
     make
   displayName: 'make'
