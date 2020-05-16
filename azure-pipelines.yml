@@ -14,5 +14,6 @@ steps:
     sudo apt-get install libboost-filesystem-dev
     sudo apt-get install protobuf-compiler
     sudo apt-get install libprotobuf-dev
+    sudo apt-get install libsdl2-dev
     make
   displayName: 'make'
