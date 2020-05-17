@@ -2,10 +2,8 @@
 //  sdl.h
 //  rnes
 //
-//
 
-#ifndef __SDL_H__
-#define __SDL_H__
+#pragma once
 
 #include <cstdint>
 
@@ -72,5 +70,3 @@ public:
 };
 
 }; // namespace Rnes
-
-#endif
