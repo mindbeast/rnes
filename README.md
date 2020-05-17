@@ -1,4 +1,4 @@
-[![Build Status](https://dev.azure.com/rileyandrews/rnes%20ci/_apis/build/status/rndrwz.rnes?branchName=master)](https://dev.azure.com/rileyandrews/rnes%20ci/_build/latest?definitionId=2&branchName=master)
+[![Build Status](https://dev.azure.com/mindbeast/rnes/_apis/build/status/mindbeast.rnes?branchName=master)](https://dev.azure.com/mindbeast/rnes/_build/latest?definitionId=1&branchName=master)
 
 Very bare NES emulator for linux. Written in c++11 and using sdl for video and sound. Rnes
 has only been tested on a few no-mmc games, mmc1, and mmc3 games. Proven to work:
