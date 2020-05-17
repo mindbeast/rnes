@@ -4,8 +4,7 @@
 //
 //
 
-#ifndef __NES_H__
-#define __NES_H__
+#pragma once
 
 #include <memory>
 #include <string>
@@ -91,5 +90,3 @@ public:
 };
 
 }; // namespace Rnes
-
-#endif
