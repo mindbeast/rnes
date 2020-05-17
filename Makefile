@@ -13,7 +13,7 @@ else
     CPPFLAGS   = -g
 endif
 
-CPPFLAGS  += -std=c++11 -Wall -Wno-unused-function
+CPPFLAGS  += -std=c++14 -Wall -Wno-unused-function
 #CPPFLAGS  += -H
 
 LIBS += SDL2
