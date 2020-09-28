@@ -10,17 +10,17 @@
 
 namespace Rnes {
 
-static const uint32_t cpuMemorySize = 1 << 16;
-static const uint32_t videoMemorySize = 1 << 14;
+static constexpr uint32_t cpuMemorySize = 1 << 16;
+static constexpr uint32_t videoMemorySize = 1 << 14;
 
-static const uint16_t prgSramBase = 0x6000;
-static const uint16_t prgSramSize = 0x2000;
+static constexpr uint16_t prgSramBase = 0x6000;
+static constexpr uint16_t prgSramSize = 0x2000;
 
-static const uint16_t nameTablesBase = 0x2000;
-static const uint16_t nameTablesSize = 0x1000;
+static constexpr uint16_t nameTablesBase = 0x2000;
+static constexpr uint16_t nameTablesSize = 0x1000;
 
-static const uint16_t paletteBase = 0x3f00;
-static const uint16_t paletteSize = 0x20;
+static constexpr uint16_t paletteBase = 0x3f00;
+static constexpr uint16_t paletteSize = 0x20;
 
 class VideoMemory;
 class CpuMemory;

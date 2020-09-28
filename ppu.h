@@ -17,9 +17,9 @@ class PpuState;
 
 class Ppu {
 public:
-  static const bool debug = false;
-  static const uint32_t ticksPerScanline = 341;
-  static const uint32_t totalScanlines = 262;
+  static constexpr bool debug = false;
+  static constexpr uint32_t ticksPerScanline = 341;
+  static constexpr uint32_t totalScanlines = 262;
 
   // bits in control register
   enum Control1Reg {
