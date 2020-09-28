@@ -41,7 +41,7 @@ private:
   uint8_t status;
 
   // Turn on debug prints
-  static const bool debug = false;
+  static constexpr bool debug = false;
 
   enum Flag {
     CARRY = 1 << 0,       // set when accumlator rolls over from 0xff -> 0x00

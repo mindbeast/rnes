@@ -81,9 +81,9 @@ public:
   };
 
 private:
-  static const uint32_t frameCycles = 7457;
-  static const uint32_t timerCycles = 32;
-  static const uint32_t frameRate = 240;
+  static constexpr uint32_t frameCycles = 7457;
+  static constexpr uint32_t timerCycles = 32;
+  static constexpr uint32_t frameRate = 240;
 
   static constexpr float cpuClk = 1.789773 * 1.0E6;
 

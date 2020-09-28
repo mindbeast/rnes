@@ -19,11 +19,11 @@ class CpuMemory {
   Mmc *mmc;
 
 public:
-  static const uint16_t cpuSramSize = 0x800;
+  static constexpr uint16_t cpuSramSize = 0x800;
   uint8_t cpuSram[cpuSramSize] = {0};
 
-  static const uint16_t prgSramBase = 0x6000;
-  static const uint16_t prgSramSize = 0x2000;
+  static constexpr uint16_t prgSramBase = 0x6000;
+  static constexpr uint16_t prgSramSize = 0x2000;
   uint8_t prgSram[prgSramSize] = {0};
 
   uint8_t load(uint16_t addr) const;

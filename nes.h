@@ -25,7 +25,7 @@ class Controller {
   Sdl *sdl;
   uint8_t control = 0;
   uint8_t shiftReg = 0;
-  const bool debug = false;
+  static constexpr bool debug = false;
 
 public:
   Controller(Sdl *inpt) : sdl{inpt} {}
