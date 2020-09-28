@@ -14,7 +14,6 @@ namespace Rnes {
 class Nes;
 class Sdl;
 class PpuState;
-
 class Ppu {
 public:
   static constexpr bool debug = false;

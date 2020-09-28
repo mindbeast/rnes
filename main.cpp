@@ -71,9 +71,9 @@ std::string getUserHomeDir() {
   return homeDir;
 }
 
-std::string getGameSaveDir(std::string &romFile) {
-  std::string homeDir = getUserHomeDir();
-  std::string md5 = md5OfFile(romFile);
+std::string getGameSaveDir(const std::string &romFile) {
+  const std::string homeDir = getUserHomeDir();
+  const std::string md5 = md5OfFile(romFile);
 
   return homeDir + "/.rnes/" + md5 + "/save";
 }

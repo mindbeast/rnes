@@ -36,12 +36,12 @@ private:
   SDL_Renderer *renderer;
   SDL_Texture *texture;
   uint32_t *image;
-  static const int dispMultiple = 4;
-  static const int renderWidth = 256;
-  static const int renderHeight = 240;
-  static const int displayHeight = dispMultiple * renderHeight;
-  static const int displayWidth = dispMultiple * renderWidth;
-  static const int bitsPerPixel;
+  static constexpr int dispMultiple = 4;
+  static constexpr int renderWidth = 256;
+  static constexpr int renderHeight = 240;
+  static constexpr int displayHeight = dispMultiple * renderHeight;
+  static constexpr int displayWidth = dispMultiple * renderWidth;
+  //static constexpr int bitsPerPixel;
   bool buttonState[BUTTON_COUNT] = {false};
   typedef void(Callback)(void *data, uint8_t *stream, int len);
   Callback *audioCallback;
