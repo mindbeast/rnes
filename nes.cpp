@@ -209,7 +209,7 @@ void Nes::run() {
 
       void loadNesState(Nes * nes, std::string saveFile);
       void saveNesState(Nes * nes, std::string saveFile);
-      std::string getGameSaveDir(std::string & romFile);
+      std::string getGameSaveDir(const std::string & romFile);
 
       if (sdl->getButtonState(Sdl::BUTTON_SAVE)) {
         saveNesState(this, getGameSaveDir(romFile));
